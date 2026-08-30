@@ -1,65 +1,225 @@
-import Image from "next/image";
+"use client";
+
+import { useMemo, useState } from "react";
+import { ChartsScreen } from "./components/ChartsScreen";
+import { ConfirmScreen } from "./components/ConfirmScreen";
+import { DayPicker } from "./components/DayPicker";
+import { HistoryScreen } from "./components/HistoryScreen";
+import { LiftChartScreen } from "./components/LiftChartScreen";
+import { NoteScreen } from "./components/NoteScreen";
+import { SettingsScreen } from "./components/SettingsScreen";
+import { TabBar, type Tab } from "./components/TabBar";
+import { buildNoteFromLog, buildNoteTemplate, parseNote } from "./lib/note";
+import { dayOfWorkout, suggestDay, todayISO } from "./lib/metrics";
+import { DAYS, exerciseById, exercisesForDay } from "./lib/exercises";
+import { useDraft } from "./lib/draft";
+import { useLog } from "./lib/store";
+import type { DayKey } from "./lib/types";
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+  const {
+    ready,
+    state,
+    replaceWorkout,
+    addExercise,
+    removeExercise,
+    moveExercise,
+    clearHistory,
+    resetRoutine,
+  } = useLog();
+  const { ready: draftReady, draft, setDraft, setText } = useDraft();
+
+  const today = useMemo(() => todayISO(), []);
+  const [tab, setTab] = useState<Tab>("note");
+  const [confirming, setConfirming] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  if (!ready || !draftReady) {
+    return (
+      <div className="mx-auto w-full max-w-[430px] px-5 pt-7">
+        <span className="title-lg">OptimalLifts</span>
+      </div>
+    );
+  }
+
+  const routine = state.exercises;
+
+  /** A fresh note for a day, seeded with that day's lift names. */
+  function startNote(day: DayKey, date: string) {
+    setDraft({
+      day,
+      date,
+      text: buildNoteTemplate(exercisesForDay(routine, day)),
+    });
+    setConfirming(false);
+    setTab("note");
+  }
+
+  /** Reopens a logged workout as the note it would have been written as. */
+  function editWorkout(date: string, day: DayKey) {
+    setDraft({
+      day,
+      date,
+      text: buildNoteFromLog(routine, state.entries, state.notes, date, day),
+    });
+    setConfirming(false);
+    setOpenId(null);
+    setTab("note");
+  }
+
+  /**
+   * Switches which split the note is for. The note is seeded with the day's
+   * lift names, so this has to reseed it — which would throw away anything
+   * already written. Silent when the note is still untouched (the common
+   * case: wrong split picked a moment ago), confirmed when it isn't.
+   */
+  function changeDay(next: DayKey) {
+    if (!draft || next === draft.day) return;
+
+    const untouched =
+      draft.text.trim() ===
+      buildNoteTemplate(exercisesForDay(routine, draft.day)).trim();
+    const label = DAYS.find((d) => d.key === next)?.label ?? next;
+
+    if (
+      !untouched &&
+      !confirm(
+        `Switch to ${label}? What you have written will be replaced with ${label}'s lifts.`,
+      )
+    ) {
+      return;
+    }
+
+    setDraft({
+      ...draft,
+      day: next,
+      text: buildNoteTemplate(exercisesForDay(routine, next)),
+    });
+  }
+
+  /** Commits the note as the whole of that day's workout. */
+  function commit() {
+    if (!draft) return;
+    const parsed = parseNote(draft.text, routine, draft.day);
+
+    // New lifts have to join the routine before the entries referencing them
+    // are written, or they would log against an id nothing points at.
+    for (const lift of parsed.lifts) {
+      if (lift.isNew && lift.sets.length) {
+        addExercise(lift.exercise.name, draft.day, Boolean(lift.exercise.bodyweight));
+      }
+    }
+
+    const items = parsed.lifts
+      .filter((l) => l.sets.length)
+      .map((l) => ({ exerciseId: l.exercise.id, sets: l.sets }));
+    const comments: Record<string, string> = {};
+    for (const l of parsed.lifts) {
+      if (l.comment && l.sets.length) comments[l.exercise.id] = l.comment;
+    }
+
+    replaceWorkout(draft.date, draft.day, items, comments);
+    setDraft(null);
+    setConfirming(false);
+    setTab("history");
+  }
+
+  let body: React.ReactNode = null;
+
+  /* -- Note ------------------------------------------------------------- */
+  if (tab === "note") {
+    if (!draft) {
+      body = (
+        <DayPicker
+          date={today}
+          routine={routine}
+          suggested={suggestDay(state.entries)}
+          onPick={(d) => startNote(d, today)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      );
+    } else if (confirming) {
+      body = (
+        <ConfirmScreen
+          parsed={parseNote(draft.text, routine, draft.day)}
+          date={draft.date}
+          onConfirm={commit}
+          onBack={() => setConfirming(false)}
+        />
+      );
+    } else {
+      body = (
+        <NoteScreen
+          day={draft.day}
+          date={draft.date}
+          text={draft.text}
+          routine={routine}
+          onChange={setText}
+          onChangeDay={changeDay}
+          onSave={() => setConfirming(true)}
+          onDiscard={() => {
+            if (confirm("Throw away this note? Nothing has been saved yet.")) {
+              setDraft(null);
+            }
+          }}
+        />
+      );
+    }
+  }
+
+  /* -- Charts ----------------------------------------------------------- */
+  if (tab === "charts") {
+    const open = openId ? exerciseById(routine, openId) : undefined;
+    body = open ? (
+      <LiftChartScreen
+        key={open.id}
+        exercise={open}
+        entries={state.entries}
+        notes={state.notes}
+        today={today}
+        onBack={() => setOpenId(null)}
+        onEditSession={(date) =>
+          editWorkout(date, dayOfWorkout(state.entries, date, open.id) ?? open.day)
+        }
+      />
+    ) : (
+      <ChartsScreen
+        routine={routine}
+        entries={state.entries}
+        onOpen={setOpenId}
+      />
+    );
+  }
+
+  /* -- History ---------------------------------------------------------- */
+  if (tab === "history") {
+    body = <HistoryScreen entries={state.entries} onOpen={editWorkout} />;
+  }
+
+  /* -- Settings --------------------------------------------------------- */
+  if (tab === "settings") {
+    body = (
+      <SettingsScreen
+        state={state}
+        day={draft?.day ?? suggestDay(state.entries)}
+        onAddExercise={addExercise}
+        onRemoveExercise={removeExercise}
+        onMoveExercise={moveExercise}
+        onResetRoutine={resetRoutine}
+        onClearHistory={clearHistory}
+      />
+    );
+  }
+
+  return (
+    <>
+      {body}
+      <TabBar
+        tab={tab}
+        onChange={(t) => {
+          setOpenId(null);
+          setTab(t);
+        }}
+      />
+    </>
   );
 }
