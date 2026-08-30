@@ -67,14 +67,8 @@ On Windows, `start-optimallifts.bat` does the build-and-start dance and prints t
 
 Built with Next.js, React and Tailwind. Everything's stored in the browser — there's no database and no accounts.
 
-## Asking it questions (optional, off by default)
+## One optional extra
 
-There's a panel that answers things like "am I stalling on pull-ups?" by looking at your history. It uses the Claude API, which costs money per question, so it's switched off unless you give it a key:
-
-```bash
-cp .env.example .env.local   # then paste a key from console.anthropic.com
-```
-
-Restart and it shows up in Settings. Without a key it stays hidden and nothing else changes.
-
-Two things worth knowing: it sends a summary of your training history off to answer the question, and the endpoint has no password on it. That's fine on your own machine, but put something in front of it before deploying this anywhere public — otherwise anyone who finds the URL is spending your money.
+There's a panel that answers questions about your progress, like "am I stalling
+on pull-ups?". It's off unless you add your own API key, and it costs money per
+question, so I leave it off. Setup is in `.env.example` if you want it.
