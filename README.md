@@ -1,74 +1,61 @@
 # OptimalLifts
 
-A push/pull/legs workout logger.
+OptimalLifts is a workout tracker I built for my push, pull, and legs routine. I had been recording my workouts in the iPhone Notes app, which was quick and easy, but it did not give me a good way to see my progress over time. I wanted to keep the same simple note-taking process while adding charts and workout history.
 
-I'd been tracking my lifts in the iPhone Notes app for a while. That part worked fine — what I wanted was something that would take those numbers and actually chart them, so this works the same way.
+## How It Works
 
-You pick your split and the day's exercises are already written out. You fill in the numbers and hit save.
+When you choose a workout, the exercises for that day are already listed. You enter your sets the same way you might type them in a note, then review what the app understood before saving.
 
-```
-Push                         Sun · Aug 30
+For example:
 
+```text
 Incline DB Press
 70x7 70x7
 
 Machine Chest Press
 120x10 120x10
 felt strong
-
-Pec Deck
-85x12 85x12 80x10
 ```
 
-Leave a lift blank and it just doesn't get logged. Write something that isn't a lift and it's kept as a note. Add a line for an exercise that isn't in your routine and it gets added.
+If you leave an exercise blank, it is not logged. You can also write regular notes or add an exercise that is not already part of your routine. The review screen helps catch mistakes before they are added to your history.
 
-Before anything saves, it shows you what it read, so a typo doesn't quietly end up in your history.
+## Entering Sets
 
-## Writing sets
+The app understands several common formats:
 
-Most ways you'd naturally write it will work:
-
-| You type | What it logs |
+| You type | What it records |
 |---|---|
-| `70x7 70x7` | two sets of 7 at 70 |
-| `3x10 @ 65` | three sets of 10 at 65 |
-| `65 x 10 x 10 x 8` | 65 for 10, 10, then 8 |
-| `135 8,8,6` | same idea, commas |
-| `10 10 8` | reps only, for bodyweight lifts |
-| `bw+25x8` | bodyweight plus 25 |
+| `70x7 70x7` | Two sets of 7 at 70 pounds |
+| `3x10 @ 65` | Three sets of 10 at 65 pounds |
+| `65 x 10 x 10 x 8` | Sets of 10, 10, and 8 at 65 pounds |
+| `135 8,8,6` | Sets of 8, 8, and 6 at 135 pounds |
+| `10 10 8` | Bodyweight sets of 10, 10, and 8 |
+| `bw+25x8` | 8 reps with bodyweight plus 25 pounds |
 
-Names don't have to be exact — "Incline Dumbbell Press" finds "Incline DB Press". If a line genuinely isn't clear it tells you instead of guessing.
+Exercise names do not have to match exactly. For example, "Incline Dumbbell Press" can match "Incline DB Press." If an entry is unclear, the app asks you to fix it instead of guessing.
 
-Everything's in pounds.
+## Features
 
-## The rest of it
+- A note-style workout entry screen
+- Custom push, pull, and legs routines
+- Progress charts for weight, reps, and estimated one-rep max
+- Workout history with editable entries
+- Light and dark themes
+- An optional AI panel for questions about your progress
 
-Four tabs. **Note** is where you write. **Charts** shows each lift's progress — weight, reps, or estimated 1RM, over whatever range you want. **History** lists your past workouts, and tapping one reopens it as the same note so you can fix a number. **Settings** is your routine and light/dark.
-
-## What's not done
-
-I use this, but it's rough in places:
-
-- **No offline mode.** It needs the server running, so the home screen icon opens to nothing if my laptop's asleep. This is the annoying one.
-- **Your data lives in one browser.** No accounts, no sync, no backup, no export. Clear your site data and it's gone.
-- **No tests.**
-
-## Running it
+## Running the Project
 
 ```bash
-cd workout-log
 npm install
 npm run dev
 ```
 
-Then open http://localhost:3000.
+Then open <http://localhost:3000>.
 
-On Windows, `start-optimallifts.bat` does the build-and-start dance and prints the address to use from your phone.
+On Windows, `start-optimallifts.bat` can also build and start the app. It prints the address you can use to open the app from a phone on the same network.
 
-Built with Next.js, React and Tailwind. Everything's stored in the browser — there's no database and no accounts.
+The project uses Next.js, React, and Tailwind CSS. Workout data is stored in the browser, so there is no database or account setup. The optional AI feature requires your own API key. Setup instructions are included in `.env.example`.
 
-## One optional extra
+## Project Status
 
-There's a panel that answers questions about your progress, like "am I stalling
-on pull-ups?". It's off unless you add your own API key, and it costs money per
-question, so I leave it off. Setup is in `.env.example` if you want it.
+OptimalLifts is a personal project that I actively use, but it is still a work in progress. It currently requires the server to be running and does not support accounts, cloud syncing, backups, or exports. Clearing the browser's site data will also remove saved workouts. Automated tests have not been added yet.
