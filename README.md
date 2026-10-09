@@ -1,12 +1,10 @@
 # OptimalLifts
 
-OptimalLifts is a workout tracker I built for my push, pull, and legs routine. I had been recording my workouts in the iPhone Notes app, which was quick and easy, but it did not give me a good way to see my progress over time. I wanted to keep the same simple note-taking process while adding charts and workout history.
+OptimalLifts is a workout tracker I built for my push, pull, and legs routine. I wanted the simplicity of typing workouts into the iPhone Notes app, with progress charts and a history I could use across devices.
 
-## How It Works
+## How it works
 
-When you choose a workout, the exercises for that day are already listed. You enter your sets the same way you might type them in a note, then review what the app understood before saving.
-
-For example:
+Choose a routine, enter your sets in a note-style format, and review the parsed exercises before saving. The parser recognizes exercise aliases and common set formats and flags unclear entries for review.
 
 ```text
 Incline DB Press
@@ -17,45 +15,45 @@ Machine Chest Press
 felt strong
 ```
 
-If you leave an exercise blank, it is not logged. You can also write regular notes or add an exercise that is not already part of your routine. The review screen helps catch mistakes before they are added to your history.
-
-## Entering Sets
-
-The app understands several common formats:
-
-| You type | What it records |
-|---|---|
-| `70x7 70x7` | Two sets of 7 at 70 pounds |
-| `3x10 @ 65` | Three sets of 10 at 65 pounds |
-| `65 x 10 x 10 x 8` | Sets of 10, 10, and 8 at 65 pounds |
-| `135 8,8,6` | Sets of 8, 8, and 6 at 135 pounds |
-| `10 10 8` | Bodyweight sets of 10, 10, and 8 |
-| `bw+25x8` | 8 reps with bodyweight plus 25 pounds |
-
-Exercise names do not have to match exactly. For example, "Incline Dumbbell Press" can match "Incline DB Press." If an entry is unclear, the app asks you to fix it instead of guessing.
+Workout data is saved locally in the browser. When you sign in, Supabase stores your workout data and syncs it across devices. Local logging remains available without a cloud connection.
 
 ## Features
 
-- A note-style workout entry screen
-- Custom push, pull, and legs routines
-- Progress charts for weight, reps, and estimated one-rep max
-- Workout history with editable entries
-- Light and dark themes
-- An optional AI panel for questions about your progress
+- Custom routines and exercise variations
+- Note-style set entry with a review step
+- Workout history and progress charts
+- Rest timer and light/dark themes
+- Supabase authentication and cloud storage
+- Gemini-powered questions about your saved workout history
 
-## Running the Project
+Set parsing runs in TypeScript. Gemini powers the coaching feature; it does not modify saved workout records.
+
+## Running locally
+
+Requires Node.js and npm.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Then open <http://localhost:3000>.
+Open the local address printed by the development server. The app uses React, TypeScript, Vite, and Supabase.
 
-On Windows, `start-optimallifts.bat` can also build and start the app. It prints the address you can use to open the app from a phone on the same network.
+Copy `.env.example` to `.env.local` and configure Supabase using [SUPABASE_SETUP.md](SUPABASE_SETUP.md). For AI coaching, configure the server-only `GEMINI_API_KEY`. The coaching endpoint requires a signed-in Supabase user.
 
-The project uses Next.js, React, and Tailwind CSS. Workout data is stored in the browser, so there is no database or account setup. The optional AI feature requires your own API key. Setup instructions are included in `.env.example`.
+## Checks
 
-## Project Status
+```bash
+npm test
+npm run build
+```
 
-OptimalLifts is a personal project that I actively use, but it is still a work in progress. It currently requires the server to be running and does not support accounts, cloud syncing, backups, or exports. Clearing the browser's site data will also remove saved workouts. Automated tests have not been added yet.
+Tests cover set parsing, exercise matching, workout data, progress calculations, timers, and coaching error handling.
+
+## Deployment
+
+The repository includes a Vercel configuration and an `/api/coach` endpoint. Add the Supabase variables and server-only Gemini key in your deployment settings. Never commit `.env.local` or put the Gemini key in a browser-facing variable.
+
+## Project status
+
+This is a personal project that I actively use. Supabase stores each signed-in user's workout document with row-level security. Browser storage keeps a local copy for use when offline or signed out. Cloud sync and AI coaching require their respective services to be configured.
