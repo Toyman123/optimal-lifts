@@ -20,13 +20,13 @@ Workout data is saved locally in the browser. When you sign in, Supabase stores 
 ## Features
 
 - Custom routines and exercise variations
-- Note-style set entry with a review step
+- Note-style set entry and Gemini natural-language parsing with a review step
 - Workout history and progress charts
 - Rest timer and light/dark themes
 - Supabase authentication and cloud storage
 - Gemini-powered questions about your saved workout history
 
-Set parsing runs in TypeScript. Gemini powers the coaching feature; it does not modify saved workout records.
+Gemini converts natural-language workout descriptions into structured exercise records through the authenticated `/api/parse` endpoint. Exercise-name matching and numeric validation run in TypeScript. Users review the result before applying it to the workout note; ambiguous entries block saving. The existing local parser remains available for compact set notation and offline logging. Supabase stores signed-in users' workout records. Gemini also powers coaching questions about saved workouts.
 
 ## Running locally
 

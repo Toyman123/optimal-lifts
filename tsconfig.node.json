@@ -7,5 +7,10 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["vite.config.ts", "api/**/*.ts"]
+  "include": [
+    "vite.config.ts",
+    "api/**/*.ts",
+    "src/gemini-parser.ts",
+    "src/types.ts"
+  ]
 }

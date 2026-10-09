@@ -241,3 +241,10 @@ h1, .hero-copy h2, .hero-number span, .metric-card strong, .chart-title strong, 
   .note-label-row { gap: 8px; }.note-label-row > div > button { padding: 0 8px; }.sticky-save.auto-save { align-items: stretch; flex-direction: column; }.sticky-save.auto-save .primary-button { width: 100%; }.rest-alert-setting { grid-template-columns: 38px minmax(0, 1fr); }.rest-alert-setting > button { grid-column: 1 / -1; }
 }
 @media (max-width: 359px) { .rest-timer { align-items: stretch; flex-direction: column; }.rest-actions { justify-content: space-between; } }
+
+.gemini-entry { margin: 12px 0; padding: 14px; border: 1px solid currentColor; border-radius: 12px; }
+.gemini-entry summary { cursor: pointer; font-weight: 600; }
+.gemini-entry p { margin: 12px 0; }
+.gemini-entry textarea { display: block; width: 100%; margin: 8px 0 12px; min-height: 90px; background: transparent; color: inherit; padding: 10px; border: 1px solid currentColor; border-radius: 8px; }
+.gemini-entry pre { white-space: pre-wrap; padding: 12px; }
+.gemini-entry button:disabled { opacity: .5; cursor: not-allowed; }

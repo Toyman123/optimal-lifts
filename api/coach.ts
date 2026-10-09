@@ -20,7 +20,7 @@ export function checkRateLimit(identity: string) {
   recent.push(now); buckets.set(identity, recent)
 }
 
-async function requireSignedInUser(req: any) {
+export async function requireSignedInUser(req: any) {
   const authorization = typeof req.headers.authorization === 'string' ? req.headers.authorization : ''
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
   if (!token) throw new CoachError(401, 'AUTH_REQUIRED', 'Sign in under Settings before using AI coaching.')
