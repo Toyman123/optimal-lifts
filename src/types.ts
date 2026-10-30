@@ -53,6 +53,8 @@ export type Session = {
 }
 
 export type Draft = {
+  startedAt?: number
+  rows?: Record<string, WorkoutRow[]>
   routineId: string
   variationId?: string
   date: string
@@ -61,6 +63,8 @@ export type Draft = {
   editingSessionId?: string
   updatedAt: string
 }
+
+export type WorkoutRow = { id: string; weight: string; reps: string; completed: boolean; effort?: SetEntry['effort'] }
 
 export type AppData = {
   schemaVersion: 3

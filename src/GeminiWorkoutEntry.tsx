@@ -16,7 +16,7 @@ export function GeminiWorkoutEntry({ exercises, onApply }: { exercises: Exercise
     const requestedRoutine = routine
     try {
       const token = await getCloudAccessToken()
-      if (!token) throw new Error('Sign in under Settings to parse a workout with Gemini.')
+      if (!token) throw new Error('Sign in under Profile to parse a workout with Gemini.')
       const response = await fetch('/api/parse', { method: 'POST', signal: AbortSignal.timeout(35000), headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ note: input, exercises }) })
       const body = await response.json()
       if (!response.ok) throw new Error(body.message || 'Could not parse your workout.')
@@ -26,7 +26,7 @@ export function GeminiWorkoutEntry({ exercises, onApply }: { exercises: Exercise
     finally { setBusy(false) }
   }
   return <details className="gemini-entry"><summary>Describe your workout with Gemini</summary>
-    <p>Describe the sets you completed, then review the weights and reps. Applying the result replaces the workout note below and starts its normal save process.</p>
+    <p>Describe the sets you completed, then review the weights and reps. Applying the result fills set rows for review. Mark each set complete to save it and start rest.</p>
     <label htmlFor="natural-workout">What did you do?</label>
     <textarea id="natural-workout" rows={3} value={input} disabled={busy} maxLength={12000} placeholder="I did two sets of incline dumbbell press at 70 pounds for 7 reps each." onChange={event => { setInput(event.target.value); setPreview(undefined) }} />
     <button type="button" className="secondary-button" disabled={busy || !input.trim()} onClick={extract}>{busy ? 'Reading workout…' : 'Parse with Gemini'}</button>

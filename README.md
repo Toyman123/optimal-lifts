@@ -1,10 +1,10 @@
 # OptimalLifts
 
-OptimalLifts is a workout tracker I built for my push, pull, and legs routine. I wanted the simplicity of typing workouts into the iPhone Notes app, with progress charts and a history I could use across devices.
+OptimalLifts is a workout tracker I built for my push, pull, and legs routine. It has a charcoal and mint dashboard, explicit set logging, progress charts, and a history I can use across devices.
 
 ## How it works
 
-Choose a routine, enter your sets in a note-style format, and review the parsed exercises before saving. The parser recognizes exercise aliases and common set formats and flags unclear entries for review.
+Choose a routine, enter weight and reps in set rows, and tap the check to complete each set. Completed sets save immediately; unfinished rows persist in the draft. Rest starts only on explicit completion. Editing a completed set does not restart rest. Gemini can also fill reviewed set rows. Existing compact workout notes remain readable and editable as structured rows.
 
 ```text
 Incline DB Press
@@ -20,9 +20,10 @@ Workout data is saved locally in the browser. When you sign in, Supabase stores 
 ## Features
 
 - Custom routines and exercise variations
-- Note-style set entry and Gemini natural-language parsing with a review step
+- Structured set entry, previous-set reuse, and Gemini natural-language parsing with a review step
 - Workout history and progress charts
-- Rest timer and light/dark themes
+- Responsive dark dashboard with mint accents
+- Persistent rest timer, pause/resume, workout elapsed time, and haptic feedback
 - Supabase authentication and cloud storage
 - Gemini-powered questions about your saved workout history
 
@@ -57,3 +58,9 @@ The repository includes a Vercel configuration and an `/api/coach` endpoint. Add
 ## Project status
 
 This is a personal project that I actively use. Supabase stores each signed-in user's workout document with row-level security. Browser storage keeps a local copy for use when offline or signed out. Cloud sync and AI coaching require their respective services to be configured.
+
+## Timer behavior
+
+The app-level rest clock uses persisted deadlines rather than decrementing callbacks. It continues across navigation and reconciles on focus, visibility changes, and page restoration. A paused timer retains remaining time across reloads. Finishing a workout clears its timer; parked workout drafts retain their timer identity. Timer ticks stay local and do not trigger cloud writes. Sound and vibration alerts require browser support; an operating system may suspend background execution, so exact background alarm delivery is not guaranteed. The countdown catches up on return.
+
+Regression tests cover timer persistence, throttled callbacks, pause/resume, alert deduplication, explicit completion, corrections, unfinished rows, legacy notes, and single-session saves.
