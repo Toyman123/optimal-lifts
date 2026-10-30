@@ -1,5 +1,5 @@
-import { CoachError, checkRateLimit, requireSignedInUser } from './coach.ts'
-import { validateExtractedWorkout } from '../src/gemini-parser.ts'
+import { CoachError, checkRateLimit, requireSignedInUser } from './coach.js'
+import { validateExtractedWorkout } from '../src/gemini-parser.js'
 import type { Exercise } from '../src/types'
 
 export async function extractWorkout(payload: { note: string; exercises: Exercise[] }, apiKey = process.env.GEMINI_API_KEY) {

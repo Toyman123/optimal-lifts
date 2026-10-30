@@ -23,9 +23,9 @@ export function checkRateLimit(identity: string) {
 export async function requireSignedInUser(req: any) {
   const authorization = typeof req.headers.authorization === 'string' ? req.headers.authorization : ''
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
-  if (!token) throw new CoachError(401, 'AUTH_REQUIRED', 'Sign in under Settings before using AI coaching.')
+  if (!token) throw new CoachError(401, 'AUTH_REQUIRED', 'Sign in under Profile before using AI coaching.')
   const supabaseUrl = process.env.VITE_SUPABASE_URL
-  const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
   if (!supabaseUrl || !publishableKey) throw new CoachError(503, 'AUTH_NOT_CONFIGURED', 'AI coaching authentication is unavailable.')
   let response: Response
   try {
@@ -33,7 +33,7 @@ export async function requireSignedInUser(req: any) {
   } catch {
     throw new CoachError(503, 'AUTH_UNAVAILABLE', 'Sign-in verification is temporarily unavailable.')
   }
-  if (!response.ok) throw new CoachError(401, 'AUTH_REQUIRED', 'Your sign-in has expired. Sign in again under Settings.')
+  if (!response.ok) throw new CoachError(401, 'AUTH_REQUIRED', 'Your sign-in has expired. Sign in again under Profile.')
   const user = await response.json() as { id?: string }
   if (!user.id) throw new CoachError(401, 'AUTH_REQUIRED', 'Your sign-in could not be verified.')
   return user.id
