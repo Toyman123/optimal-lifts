@@ -18,6 +18,7 @@ export type CloudState = {
   configured: boolean
   authReady: boolean
   googleEnabled: boolean
+  displayName?: string
   email?: string
   status: 'local' | 'connecting' | 'syncing' | 'synced' | 'error'
   message?: string
@@ -145,5 +146,5 @@ export function useCloudSync(data: AppData, setData: Dispatch<SetStateAction<App
     catch (error) { setStatus('error'); setMessage(error instanceof Error ? error.message : 'Cloud sync failed.') }
   }
 
-  return { configured: Boolean(supabase), authReady, googleEnabled, email: session?.user.email, status, message, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut, syncNow }
+  return { configured: Boolean(supabase), authReady, googleEnabled, displayName: session?.user.user_metadata?.full_name || session?.user.user_metadata?.name, email: session?.user.email, status, message, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut, syncNow }
 }

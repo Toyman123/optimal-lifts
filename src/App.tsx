@@ -1,14 +1,15 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
-  Archive, ArrowLeft, ArrowRight, Barbell, CaretDown, ChartLineUp, Cloud,
+  Archive, ArrowLeft, ArrowRight, Barbell, Books, CaretDown, ChartLineUp, Cloud,
   ChatCircleText, Check, DotsSixVertical, Gear, House, Info,
-  NotePencil, PaperPlaneRight, Plus, Repeat, Trash, WarningCircle, X,
+  NotePencil, PaperPlaneRight, Plus, Repeat, Trash, UserCircle, WarningCircle, X,
 } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WorkoutLogger, RestTimerBar } from './WorkoutLogger'
 import { useRestTimer, workoutKey } from './useRestTimer'
 import { Dashboard } from './Dashboard'
+import { ExerciseCatalog, WorkoutLibrary } from './Library'
 import { createSeedData } from './data'
 import { renameExerciseForFutureWorkouts } from './exercises'
 import { getCloudAccessToken, useCloudSync, type CloudState } from './cloud'
@@ -17,7 +18,7 @@ import { sessionMetric, type ChartMetric } from './progress'
 import { clearData, loadData, saveData } from './storage'
 import type { AppData, Draft, Exercise, Routine, Session } from './types'
 
-type View = 'home' | 'workouts' | 'log' | 'progress' | 'coach' | 'settings'
+type View = 'home' | 'workouts' | 'log' | 'progress' | 'coach' | 'settings' | 'exercises' | 'library'
 const today = () => {
   const date = new Date()
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -98,18 +99,24 @@ function App() {
     openWorkout(id)
   }
 
+  const openSession = (session: Session) => {
+    setData(current => ({ ...current, drafts: current.draft && current.draft.editingSessionId !== session.id ? [...(current.drafts ?? []).filter(item => item.routineId !== current.draft!.routineId), current.draft] : current.drafts, draft: { startedAt: Date.now(), isHistorical: true, routineId: session.routineId, variationId: session.variationId, date: session.date, note: session.rawNote, order: session.actualExerciseOrder, editingSessionId: session.id, updatedAt: new Date().toISOString() } }))
+    setSelectedRoutineId(session.routineId); navigate('log')
+  }
   return <div className="app-shell">
     <aside className="desktop-rail">
-      <button className="brand-lockup" onClick={() => navigate('home')}><DumbbellMark /><span>Optimal Lifts</span></button>
+      <button className="brand-lockup" onClick={() => navigate('home')}><DumbbellMark /><span>OptimalLifts</span></button>
       <Navigation view={view} navigate={navigate} vertical />
-      <div className="rail-footer"><DumbbellMark size={28} /><div><strong>Your training space</strong><small>{cloud.email ?? "Progress has a home."}</small></div></div>
+      <button className="rail-footer" onClick={() => navigate('settings')}><UserCircle size={32} weight="duotone" /><span><strong>{cloud.displayName ?? "Your profile"}</strong><small>{cloud.email ?? "Local account"}</small></span></button>
     </aside>
     <main id="main-content" className="main-stage">
-      <div className="mobile-topbar"><button className="brand-lockup" onClick={() => navigate('home')}><DumbbellMark size={28} /><span>Optimal Lifts</span></button></div>
+      <div className="mobile-topbar"><button className="brand-lockup" onClick={() => navigate('home')}><DumbbellMark size={28} /><span>OptimalLifts</span></button></div>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={view} {...routeMotion} className="route">
-          {view === 'home' && <Dashboard data={data} setData={setData} startWorkout={startWorkout} navigate={navigate} />}
-          {view === 'workouts' && <Workouts data={data} setData={setData} startWorkout={startWorkout} toast={toast} />}
+          {view === 'home' && <Dashboard data={data} startWorkout={startWorkout} navigate={navigate} displayName={cloud.displayName?.split(" ")[0]} onSession={openSession} />}
+          {view === 'exercises' && <ExerciseCatalog data={data} />}
+          {view === 'library' && <WorkoutLibrary data={data} startWorkout={startWorkout} />}
+          {view === 'workouts' && <Workouts data={data} setData={setData} startWorkout={startWorkout} toast={toast} navigate={navigate} />}
           {view === 'log' && data.draft && <WorkoutLogger key={workoutKey(data.draft)} data={data} setData={setData} clock={clock} onBack={() => navigate('workouts')} onFinish={() => navigate('progress')} toast={toast} />}
           {view === 'coach' && <div className="page coach-page"><PageHeader eyebrow="Your training, in context" title="AI Coach" /><CoachPanel sessions={data.sessions} /></div>}
           {view === 'progress' && <Progress data={data} setData={setData} navigate={navigate} setRoutineId={setSelectedRoutineId} />}
@@ -127,10 +134,10 @@ function App() {
 function Navigation({ view, navigate, vertical = false }: { view: View; navigate: (v: View) => void; vertical?: boolean }) {
   const items: { view: View; label: string; icon: typeof House }[] = [
     { view: 'home', label: 'Dashboard', icon: House }, { view: 'workouts', label: 'Workouts', icon: Barbell },
-    { view: 'progress', label: 'Analytics', icon: ChartLineUp }, { view: 'coach', label: 'AI Coach', icon: ChatCircleText }, { view: 'settings', label: 'Profile', icon: Gear },
+    { view: 'exercises', label: 'Exercises', icon: Barbell }, { view: 'progress', label: 'Analytics', icon: ChartLineUp }, { view: 'coach', label: 'AI Coach', icon: ChatCircleText }, { view: 'library', label: 'Library', icon: Books }, { view: 'settings', label: 'Settings', icon: Gear },
   ]
   return <nav className={vertical ? 'rail-nav' : 'bottom-nav'} aria-label="Primary navigation">
-    {items.map(item => { const Icon = item.icon; const active = view === item.view || (item.view === 'workouts' && view === 'log'); return <motion.button key={item.view} onClick={() => navigate(item.view)} className={active ? 'nav-item active' : 'nav-item'} whileTap={{ scale: .92 }} aria-current={active ? 'page' : undefined}>
+    {items.filter(item => vertical || !['exercises', 'library'].includes(item.view)).map(item => { const Icon = item.icon; const active = view === item.view || (item.view === 'workouts' && view === 'log'); return <motion.button key={item.view} onClick={() => navigate(item.view)} className={active ? 'nav-item active' : 'nav-item'} whileTap={{ scale: .92 }} aria-current={active ? 'page' : undefined}>
       <span className="nav-icon"><Icon size={22} weight={active ? 'fill' : 'regular'} />{active && <motion.i layoutId={vertical ? 'rail-pill' : 'nav-dot'} />}</span><span>{item.label}</span>
     </motion.button> })}
   </nav>
@@ -140,7 +147,7 @@ function PageHeader({ eyebrow, title, action }: { eyebrow: string; title: string
   return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div>{action}</header>
 }
 
-function Workouts({ data, setData, startWorkout, toast }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>>; startWorkout: (id: string) => void; toast: (s: string) => void }) {
+function Workouts({ data, setData, startWorkout, toast, navigate }: { navigate: (view: View) => void; data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>>; startWorkout: (id: string) => void; toast: (s: string) => void }) {
   const [editing, setEditing] = useState<Routine | null>(null)
   const [newName, setNewName] = useState('')
   const addRoutine = () => {
@@ -149,9 +156,10 @@ function Workouts({ data, setData, startWorkout, toast }: { data: AppData; setDa
     setData(d => ({ ...d, routines: [...d.routines, routine] })); setNewName(''); setEditing(routine); toast('Workout created')
   }
   return <div className="page"><PageHeader eyebrow="Build your rotation" title="Workouts" action={<span className="count-badge">{data.routines.filter(r => !r.archived).length} active</span>} />
+    <div className="workout-catalog-links"><button className="text-link" onClick={() => navigate('exercises')}>Exercises <ArrowRight /></button><button className="text-link" onClick={() => navigate('library')}>Library <ArrowRight /></button></div>
     <div className="stack-list">{data.routines.filter(r => !r.archived).map((routine, index) => <motion.article layout key={routine.id} className="workout-list-card">
       <div className="routine-reorder"><button aria-label={`Move ${routine.name} earlier`} disabled={index === 0} onClick={() => setData(current => { const routines = [...current.routines]; const at = routines.findIndex(r => r.id === routine.id); const target = routines.findIndex(r => r.id === current.routines.filter(item => !item.archived)[index - 1]?.id); if (target < 0) return current; [routines[at], routines[target]] = [routines[target], routines[at]]; return { ...current, routines } })}>↑</button><button aria-label={`Move ${routine.name} later`} disabled={index === data.routines.filter(r => !r.archived).length - 1} onClick={() => setData(current => { const routines = [...current.routines]; const at = routines.findIndex(r => r.id === routine.id); const target = routines.findIndex(r => r.id === current.routines.filter(item => !item.archived)[index + 1]?.id); if (target < 0) return current; [routines[at], routines[target]] = [routines[target], routines[at]]; return { ...current, routines } })}>↓</button></div><div className="list-card-copy"><span>{String(index + 1).padStart(2, '0')}</span><h2>{routine.name}</h2><p>{routine.exercises.filter(e => !e.archived).map(e => e.name).join(' · ') || 'Add your first exercise'}</p></div>
-      <div className="list-actions"><Pressable className="secondary-button" onClick={() => setEditing(routine)}>Edit</Pressable><Pressable className="round-button" onClick={() => startWorkout(routine.id)} ariaLabel={`Start ${routine.name}`}><ArrowRight /></Pressable></div>
+      <div className="list-actions"><button className="text-link" onClick={() => setData(current => ({ ...current, nextRoutineId: routine.id }))}>{data.nextRoutineId === routine.id ? 'Up next' : 'Set as next'}</button><Pressable className="secondary-button" onClick={() => setEditing(routine)}>Edit</Pressable><Pressable className="round-button" onClick={() => startWorkout(routine.id)} ariaLabel={`Start ${routine.name}`}><ArrowRight /></Pressable></div>
     </motion.article>)}</div>
     <form className="inline-create" onSubmit={e => { e.preventDefault(); addRoutine() }}><label htmlFor="routine-name">New workout</label><div><input id="routine-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Upper, Full body, Arms…" /><Pressable type="submit" className="primary-button" disabled={!newName.trim()}><Plus /> Add</Pressable></div></form>
     <details className="archive-drawer"><summary><Archive /> Archived workouts <span>{data.routines.filter(r => r.archived).length}</span></summary>{data.routines.filter(r => r.archived).map(r => <button key={r.id} onClick={() => setData(d => ({ ...d, routines: d.routines.map(item => item.id === r.id ? { ...item, archived: false } : item) }))}>{r.name}<Repeat /></button>)}</details>
@@ -197,7 +205,7 @@ function CoachPanel({ sessions }: { sessions: Session[] }) {
     const history = [...sessions].sort((a, b) => b.savedAt.localeCompare(a.savedAt)).slice(0, 30).map(session => ({ date: session.date, routine: session.routineName, variation: session.variationName, orderKind: session.orderKind, comment: session.comment, exercises: session.exercises.map(exercise => ({ name: exercise.exerciseName, position: exercise.position, comment: exercise.comment, sets: exercise.sets.map(set => ({ weight: set.weight, reps: set.reps, bodyweight: set.bodyweight })) })) }))
     try {
       const accessToken = await getCloudAccessToken()
-      if (!accessToken) throw new Error('Sign in under Profile before using AI coaching.')
+      if (!accessToken) throw new Error('Sign in under Settings before using AI coaching.')
       const response = await fetch('/api/coach', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ question: text, sessions: history }) })
       const body = await response.json() as { answer?: string; message?: string; code?: string }
       if (!response.ok) throw new Error(body.message || 'The coach is unavailable.')
@@ -229,7 +237,7 @@ function Progress({ data, setData, navigate, setRoutineId }: { data: AppData; se
   const bestReps = points.length ? Math.max(...points.map(p => p.reps)) : 0
   const bestE1rm = records.length ? Math.max(...records.flatMap(r => r.exercise.sets.map(s => estimatedOneRepMax(s.weight, s.reps)))) : 0
   const sessions = [...data.sessions].filter(session => session.routineId === progressRoutineId).sort((a, b) => b.savedAt.localeCompare(a.savedAt))
-  const edit = (session: Session) => { setData(d => ({ ...d, drafts: d.draft && d.draft.editingSessionId !== session.id ? [...(d.drafts ?? []).filter(item => item.routineId !== d.draft!.routineId), d.draft] : d.drafts, draft: { startedAt: Date.now(), routineId: session.routineId, variationId: session.variationId, date: session.date, note: session.rawNote, order: session.actualExerciseOrder, editingSessionId: session.id, updatedAt: new Date().toISOString() } })); setRoutineId(session.routineId); navigate('log') }
+  const edit = (session: Session) => { setData(d => ({ ...d, drafts: d.draft && d.draft.editingSessionId !== session.id ? [...(d.drafts ?? []).filter(item => item.routineId !== d.draft!.routineId), d.draft] : d.drafts, draft: { startedAt: Date.now(), isHistorical: true, routineId: session.routineId, variationId: session.variationId, date: session.date, note: session.rawNote, order: session.actualExerciseOrder, editingSessionId: session.id, updatedAt: new Date().toISOString() } })); setRoutineId(session.routineId); navigate('log') }
   const metricMeta: Record<ChartMetric, { label: string; unit: string; help: string }> = {
     performance: { label: 'Rep-adjusted weight', unit: ' lb score', help: 'Average across completed sets: weight × (1 + 0.025 × (reps − 1)). This is a weight comparison score—not the load lifted or a 1RM.' },
     weight: { label: 'Highest weight', unit: ' lb', help: 'The heaviest completed set in each session.' },

@@ -38,6 +38,7 @@ export type SessionExercise = {
 }
 
 export type Session = {
+  durationSeconds?: number
   id: string
   date: string
   savedAt: string
@@ -53,6 +54,7 @@ export type Session = {
 }
 
 export type Draft = {
+  isHistorical?: boolean
   startedAt?: number
   rows?: Record<string, WorkoutRow[]>
   routineId: string

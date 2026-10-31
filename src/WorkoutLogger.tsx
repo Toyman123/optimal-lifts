@@ -49,7 +49,7 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast }:
     }).map((entry, index) => ({ ...entry, position: index + 1 }))
     const note = [initialParsed.current.sessionComment, ...entries.map(entry => `${entry.exerciseName}\n${entry.sets.map(set => `${set.bodyweight ? `bw+${set.weight}` : set.weight}x${set.reps}`).join(' ')}${entry.comment ? `\n${entry.comment}` : ''}`)].filter(Boolean).join('\n\n')
     const variation = routine.variations.find(v => v.id === (extra.variationId ?? draft.variationId))
-    const session: Session = { id: sessionId.current, date: extra.date ?? draft.date, savedAt: new Date().toISOString(), routineId: routine.id, routineName: routine.name, variationId: variation?.id, variationName: variation?.name, orderKind: variation ? 'variation' : 'one-off', actualExerciseOrder: entries.map(e => e.exerciseId), exercises: entries, comment: initialParsed.current.sessionComment, rawNote: note }
+    const session: Session = { durationSeconds: data.sessions.find(s => s.id === sessionId.current)?.durationSeconds, id: sessionId.current, date: extra.date ?? draft.date, savedAt: new Date().toISOString(), routineId: routine.id, routineName: routine.name, variationId: variation?.id, variationName: variation?.name, orderKind: variation ? 'variation' : 'one-off', actualExerciseOrder: entries.map(e => e.exerciseId), exercises: entries, comment: initialParsed.current.sessionComment, rawNote: note }
     setData(current => ({ ...current, draft: { ...current.draft!, ...extra, rows: next, note, editingSessionId: sessionId.current, updatedAt: new Date().toISOString() }, sessions: entries.length ? [...current.sessions.filter(s => s.id !== sessionId.current), session] : current.sessions.filter(s => s.id !== sessionId.current) }))
   }
   const updateRow = (id: string, rowId: string, patch: Partial<WorkoutRow>) => commit({ ...rowsRef.current, [id]: rowsRef.current[id].map(row => row.id === rowId ? { ...row, ...patch } : row) })
@@ -66,7 +66,7 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast }:
     const exact = routine.variations.find(v => !v.archived && v.exerciseIds.filter(id => ids.includes(id)).join('|') === ids.join('|'))
     if (!exact && !saveOrder) { setNeedsOrder(true); return }
     const variation = exact ?? (orderName.trim() ? { id: uid(), name: orderName.trim(), exerciseIds: ids } : undefined)
-    setData(current => ({ ...current, routines: !exact && variation ? current.routines.map(r => r.id === routine.id ? { ...r, variations: [...r.variations, variation] } : r) : current.routines, sessions: current.sessions.map(s => s.id === sessionId.current ? { ...s, variationId: variation?.id, variationName: variation?.name, orderKind: variation ? 'variation' : 'one-off' } : s), draft: undefined, drafts: current.drafts?.filter(d => workoutKey(d) !== key) }))
+    setData(current => ({ ...current, routines: !exact && variation ? current.routines.map(r => r.id === routine.id ? { ...r, variations: [...r.variations, variation] } : r) : current.routines, sessions: current.sessions.map(s => s.id === sessionId.current ? { ...s, durationSeconds: draft.isHistorical ? s.durationSeconds : seconds, variationId: variation?.id, variationName: variation?.name, orderKind: variation ? 'variation' : 'one-off' } : s), draft: undefined, drafts: current.drafts?.filter(d => workoutKey(d) !== key) }))
     if (clock.timer?.workoutKey === key) clock.cancel()
     toast('Workout finished. Every set saved.'); onFinish()
   }
