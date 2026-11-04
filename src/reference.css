@@ -233,3 +233,38 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .ppl-switch button.active { border-color: #b7bdca; }
 .log-set-row input:focus { border-color: #596580; }
 @media (min-width: 900px) { .workout-dock { left: 228px; right: 22px; bottom: 22px; } }
+.entry-switch { width: max-content; margin: 0 0 20px; }
+.manual-rest { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 18px 20px; margin-bottom: 20px; }
+.manual-rest > div { display: flex; align-items: center; gap: 9px; margin-right: auto; font-size: 13px; }
+.manual-rest label { flex: 1; max-width: 240px; }
+.manual-rest label select { width: 100%; }
+.manual-rest select { font-size: 12px; background: var(--canvas); }
+.workout-notes { padding: 24px; }
+.workout-notes > label { display: block; font-size: 17px; font-weight: 600; }
+.workout-notes > p { color: var(--muted); font-size: 12px; margin: 10px 0 20px; line-height: 1.7; }
+.workout-notes > textarea { width: 100%; min-height: 420px; resize: vertical; padding: 20px; border-radius: 14px; background: var(--canvas); font: 14px/1.9 Consolas, monospace; }
+.workout-notes > footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; }
+.workout-notes > footer > span { color: var(--muted); font-size: 11px; }
+@media(max-width:700px) { .manual-rest { padding: 16px; gap: 10px; } .manual-rest > div { width: 100%; margin-bottom: 3px; } .manual-rest label { max-width: none; flex-basis: 60%; } .manual-rest > select { flex: 1; } .manual-rest > button { width: 100%; } .workout-notes { padding: 18px 14px; } .workout-notes > textarea { padding: 14px; min-height: 380px; font-size: 14px; } }
+.week-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.recent-row > svg:last-child { margin-left: auto; }
+.entry-switch button { white-space: nowrap; }
+@media(max-width:700px) {
+  .app-shell:has(.training-page) .mobile-topbar { display: none; }
+  .training-page { padding-top: 18px; }
+  .training-top { margin-bottom: 17px; }
+  .training-heading { flex-wrap: nowrap; gap: 10px; margin-bottom: 18px; }
+  .training-heading > .primary-button { width: auto; order: initial; font-size: 10px; padding: 0 10px; min-height: 38px; }
+  .training-heading > time { font-size: 12px; }
+  .training-heading h1 { font-size: 26px; }
+  .training-heading .eyebrow { font-size: 8px; }
+  .training-toolbar { margin-bottom: 14px; }
+  .entry-switch { margin-bottom: 14px; }
+  .entry-switch button { flex: none; padding: 8px 18px; }
+  .manual-rest { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: 13px; gap: 8px; margin-bottom: 16px; }
+  .manual-rest > div { width: auto; margin: 0; grid-column: 1; grid-row: 1; }
+  .manual-rest > button { width: auto; min-height: 35px; grid-column: 2; grid-row: 1; padding: 0 10px; font-size: 11px; }
+  .manual-rest label { grid-column: 1; min-width: 0; }
+  .manual-rest > select { grid-column: 2; }
+  .manual-rest select { padding: 7px; font-size: 11px; }
+}

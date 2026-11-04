@@ -54,6 +54,7 @@ export type Session = {
 }
 
 export type Draft = {
+  entryMode?: 'notes' | 'sets'
   isHistorical?: boolean
   startedAt?: number
   rows?: Record<string, WorkoutRow[]>

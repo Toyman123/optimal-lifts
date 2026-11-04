@@ -22,7 +22,14 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast }:
   const draft = data.draft!
   const routine = data.routines.find(item => item.id === draft.routineId)!
   const initialParsed = useRef(parseWorkoutNote(draft.note, routine.exercises))
-  const [rows, setRows] = useState(() => hydrateRows(draft, routine))
+  const [entryMode, setEntryMode] = useState<'notes' | 'sets'>(draft.entryMode ?? 'notes')
+  const toNote = (values: Record<string, WorkoutRow[]>) => [initialParsed.current.sessionComment, ...[...new Set([...draft.order, ...routine.exercises.map(e => e.id)])].map(id => routine.exercises.find(e => e.id === id)).filter((e): e is Routine['exercises'][number] => Boolean(e && !e.archived)).map(exercise => {
+    const sets = (values[exercise.id] ?? []).filter(row => row.weight || row.reps).map(row => `${exercise.bodyweight ? `bw+${row.weight || '0'}` : row.weight}x${row.reps}`).join(' ')
+    const comment = initialParsed.current.exercises.find(item => item.exercise.id === exercise.id)?.comment
+    return [exercise.name, sets, comment].filter(Boolean).join('\n')
+  })].filter(Boolean).join('\n\n')
+  const [notesText, setNotesText] = useState(() => draft.rows && !draft.entryMode ? toNote(draft.rows) : draft.note)
+  const [rows, setRows] = useState(() => hydrateRows(entryMode === 'notes' ? { ...draft, note: notesText, rows: undefined } : draft, routine))
   const rowsRef = useRef(rows)
   const sessionId = useRef(draft.editingSessionId ?? uid())
   const [newExercise, setNewExercise] = useState('')
@@ -38,6 +45,23 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast }:
   const completed = Object.values(rows).flat().filter(row => row.completed && validRow(row)).length
   const previous = (id: string) => [...data.sessions].filter(s => s.id !== sessionId.current && s.routineId === routine.id).sort((a, b) => b.date.localeCompare(a.date) || b.savedAt.localeCompare(a.savedAt)).find(s => s.exercises.some(e => e.exerciseId === id))
   const restFor = (id: string) => data.restSeconds?.[id] ?? 120
+  const [restExerciseId, setRestExerciseId] = useState(() => exercises[0]?.id ?? '')
+  const changeNotes = (note: string) => {
+    setNotesText(note); setError('')
+    initialParsed.current = parseWorkoutNote(note, routine.exercises)
+    const next = hydrateRows({ ...draft, rows: undefined, note }, routine)
+    rowsRef.current = next; setRows(next)
+    const noteOrder = initialParsed.current.exercises.map(item => item.exercise.id)
+    setData(current => ({ ...current, draft: { ...current.draft!, entryMode: 'notes', note, rows: next, order: [...new Set([...noteOrder, ...current.draft!.order])], updatedAt: new Date().toISOString() } }))
+  }
+  const switchEntry = (mode: 'notes' | 'sets') => {
+    if (mode === entryMode) return
+    if (entryMode === 'notes' && parseWorkoutNote(notesText, routine.exercises).issues.length) { setError('Fix the incomplete sets in your notes before switching to set entry.'); return }
+    const note = mode === 'notes' ? toNote(rowsRef.current) : notesText
+    setNotesText(note); initialParsed.current = parseWorkoutNote(note, routine.exercises)
+    setEntryMode(mode)
+    setData(current => ({ ...current, draft: { ...current.draft!, entryMode: mode, note, rows: rowsRef.current, updatedAt: new Date().toISOString() } }))
+  }
 
   // Commit draft fields and completed sets together. Field editing never starts rest.
   const commit = (next: Record<string, WorkoutRow[]>, extra: Partial<Draft> = {}) => {
@@ -47,7 +71,7 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast }:
       const sets = (next[exercise.id] ?? []).filter(row => row.completed && validRow(row)).map(row => ({ id: row.id, weight: Number(row.weight), reps: Number(row.reps), bodyweight: exercise.bodyweight, effort: row.effort }))
       return sets.length ? [{ exerciseId: exercise.id, exerciseName: exercise.name, position: 0, sets, comment: initialParsed.current.exercises.find(item => item.exercise.id === exercise.id)?.comment }] : []
     }).map((entry, index) => ({ ...entry, position: index + 1 }))
-    const note = [initialParsed.current.sessionComment, ...entries.map(entry => `${entry.exerciseName}\n${entry.sets.map(set => `${set.bodyweight ? `bw+${set.weight}` : set.weight}x${set.reps}`).join(' ')}${entry.comment ? `\n${entry.comment}` : ''}`)].filter(Boolean).join('\n\n')
+    const note = entryMode === 'notes' ? notesText : [initialParsed.current.sessionComment, ...entries.map(entry => `${entry.exerciseName}\n${entry.sets.map(set => `${set.bodyweight ? `bw+${set.weight}` : set.weight}x${set.reps}`).join(' ')}${entry.comment ? `\n${entry.comment}` : ''}`)].filter(Boolean).join('\n\n')
     const variation = routine.variations.find(v => v.id === (extra.variationId ?? draft.variationId))
     const session: Session = { durationSeconds: data.sessions.find(s => s.id === sessionId.current)?.durationSeconds, id: sessionId.current, date: extra.date ?? draft.date, savedAt: new Date().toISOString(), routineId: routine.id, routineName: routine.name, variationId: variation?.id, variationName: variation?.name, orderKind: variation ? 'variation' : 'one-off', actualExerciseOrder: entries.map(e => e.exerciseId), exercises: entries, comment: initialParsed.current.sessionComment, rawNote: note }
     setData(current => ({ ...current, draft: { ...current.draft!, ...extra, rows: next, note, editingSessionId: sessionId.current, updatedAt: new Date().toISOString() }, sessions: entries.length ? [...current.sessions.filter(s => s.id !== sessionId.current), session] : current.sessions.filter(s => s.id !== sessionId.current) }))
@@ -60,6 +84,7 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast }:
   }
   const finish = (saveOrder = false) => {
     if (!completed) return
+    if (entryMode === 'notes' && parseWorkoutNote(notesText, routine.exercises).issues.length) { setError('Fix the incomplete sets in your notes before finishing. Your draft is saved.'); return }
     if (Object.values(rowsRef.current).flat().some(row => row.completed && !validRow(row))) { setError('Fix the highlighted set values before finishing.'); return }
     commit(rowsRef.current)
     const ids = exercises.filter(e => rows[e.id]?.some(row => row.completed)).map(e => e.id)
@@ -73,10 +98,13 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast }:
   return <div className="page training-page">
     <div className="training-top"><button className="back-button" onClick={onBack}><ArrowLeft /> Workouts</button><span className="save-status"><i /> Saved on this device</span></div>
     <header className="training-heading"><div><p className="eyebrow">Workout in progress</p><h1>{routine.name}</h1></div><time aria-label="Workout elapsed time">{formatClock(seconds)}</time><button className="primary-button" disabled={!completed} onClick={() => finish()}>Finish workout <Check /></button></header>
-    <div className="training-toolbar"><label>Date <input aria-label="Workout date" type="date" value={draft.date} onChange={e => commit(rowsRef.current, { date: e.target.value })} /></label><label>Order <select aria-label="Workout order" value={draft.variationId ?? ''} onChange={e => { const variation = routine.variations.find(v => v.id === e.target.value); if (variation) commit(rowsRef.current, { variationId: variation.id, order: variation.exerciseIds }) }}>{routine.variations.filter(v => !v.archived).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label><button className="text-link" onClick={() => setRestSettings(!restSettings)}><ClockCountdown /> Rest settings</button></div>
+    <div className="training-toolbar"><label>Date <input aria-label="Workout date" type="date" value={draft.date} onChange={e => commit(rowsRef.current, { date: e.target.value })} /></label><label>Order <select aria-label="Workout order" value={draft.variationId ?? ''} onChange={e => { const variation = routine.variations.find(v => v.id === e.target.value); if (variation) commit(rowsRef.current, { variationId: variation.id, order: variation.exerciseIds }) }}>{routine.variations.filter(v => !v.archived).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>{entryMode === 'sets' && <button className="text-link" onClick={() => setRestSettings(!restSettings)}><ClockCountdown /> Rest settings</button>}</div>
     {restSettings && <section className="rest-settings panel"><h2>Rest between sets</h2><p>Starts when you mark a set complete. Editing a completed set won’t restart it.</p><button className="secondary-button" onClick={() => void clock.enableAlerts()}>{clock.alerts ? 'Turn alerts off' : 'Enable sound & vibration'}</button><p>Alerts work while the browser can run. If your phone suspends the app, the countdown catches up when you return.</p>{exercises.map(e => <label key={e.id}>{e.name}<select aria-label={`Rest for ${e.name}`} value={restFor(e.id)} onChange={event => setData(current => ({ ...current, restSeconds: { ...current.restSeconds, [e.id]: Number(event.target.value) } }))}>{[...new Set([30, 60, 90, 120, 150, 180, 240, 300, restFor(e.id)])].sort((a, b) => a - b).map(n => <option key={n} value={n}>{formatClock(n)}</option>)}</select></label>)}</section>}
     {error && <p className="form-error" role="alert">{error}</p>}
-    <div className="training-layout"><div className="exercise-stack">{exercises.map(exercise => {
+    <div className="entry-switch segmented" aria-label="Workout entry"><button className={entryMode === 'notes' ? 'active' : ''} aria-pressed={entryMode === 'notes'} onClick={() => switchEntry('notes')}>Notes</button><button className={entryMode === 'sets' ? 'active' : ''} aria-pressed={entryMode === 'sets'} onClick={() => switchEntry('sets')}>Set entry</button></div>
+    <section className="manual-rest panel" aria-label="Rest timer controls"><div><ClockCountdown size={21} /><strong>Rest timer</strong></div><label><span className="sr-only">Rest exercise</span><select aria-label="Rest exercise" value={restExerciseId} onChange={event => setRestExerciseId(event.target.value)}>{exercises.map(exercise => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}</select></label><select aria-label="Rest duration" value={restFor(restExerciseId)} onChange={event => setData(current => ({ ...current, restSeconds: { ...current.restSeconds, [restExerciseId]: Number(event.target.value) } }))}>{[...new Set([30, 60, 90, 120, 150, 180, 240, 300, restFor(restExerciseId)])].sort((a, b) => a - b).map(duration => <option key={duration} value={duration}>{formatClock(duration)}</option>)}</select><button className="primary-button" disabled={!restExerciseId} onClick={() => clock.start(key, restExerciseId, exercises.find(e => e.id === restExerciseId)?.name ?? routine.name, restFor(restExerciseId))}><Play weight="fill" />{clock.timer?.workoutKey === key ? 'Restart rest' : 'Start rest'}</button></section>
+    {entryMode === 'notes' && <section className="workout-notes panel"><label htmlFor="workout-notes">Workout notes</label><p>Write your exercises and sets, like Bench 225x8 225x6. Add notes on the lines below.</p><textarea id="workout-notes" spellCheck={false} value={notesText} onChange={event => changeNotes(event.target.value)} /><footer><span>Draft saved as you type</span><button className="secondary-button" onClick={() => { if (parseWorkoutNote(notesText, routine.exercises).issues.length) { setError('Fix the incomplete sets before saving. Your draft is saved.'); return } commit(rowsRef.current); toast('Notes saved.') }}>Save notes</button></footer><GeminiWorkoutEntry exercises={exercises} onApply={changeNotes} /></section>}
+    {entryMode === 'sets' && <div className="training-layout"><div className="exercise-stack">{exercises.map(exercise => {
       const list = rows[exercise.id] ?? [blank(exercise.bodyweight ? '0' : '')]
       const prior = previous(exercise.id)
       const priorExercise = prior?.exercises.find(e => e.exerciseId === exercise.id)
@@ -88,7 +116,7 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast }:
       </section>
     })}<form className="add-exercise panel" onSubmit={event => { event.preventDefault(); if (!newExercise.trim()) return; const id = uid(); const addedRows = [blank()]; setData(current => ({ ...current, routines: current.routines.map(r => r.id === routine.id ? { ...r, exercises: [...r.exercises, { id, name: newExercise.trim(), aliases: [], bodyweight: false }] } : r), draft: { ...current.draft!, order: [...current.draft!.order, id], rows: { ...rowsRef.current, [id]: addedRows } } })); rowsRef.current = { ...rowsRef.current, [id]: addedRows }; setRows(rowsRef.current); setNewExercise('') }}><input aria-label="New exercise name" placeholder="Add an exercise…" value={newExercise} onChange={e => setNewExercise(e.target.value)} /><button className="secondary-button" disabled={!newExercise.trim()}><Plus /> Add</button></form></div>
       <aside className="training-summary panel"><ClockCountdown size={26} /><h2>One set at a time.</h2><p>Log your weight and reps, then tap the check to complete your set and start rest.</p><strong>{completed}<small> sets completed</small></strong><button className="secondary-button" onClick={() => void clock.enableAlerts()}>{clock.alerts ? 'Alerts on · Turn off' : 'Enable rest alerts'}</button><GeminiWorkoutEntry exercises={exercises} onApply={note => { const parsed = parseWorkoutNote(note, exercises); if (parsed.issues.length) { setError('Review the imported sets before applying.'); return } initialParsed.current = parsed; const next = Object.fromEntries(exercises.map(e => [e.id, parsed.exercises.find(p => p.exercise.id === e.id)?.sets.map(s => ({ id: s.id, weight: String(s.weight), reps: String(s.reps), completed: false, effort: s.effort })) ?? rowsRef.current[e.id] ?? [blank()]])); commit(next); toast('Sets imported. Mark each set complete when ready.') }} /></aside>
-    </div>
+    </div>}
     {needsOrder && <div className="inline-order panel"><h2>Keep this exercise order?</h2><p>This session uses a different order from your saved variations.</p><input aria-label="New order name" placeholder="Optional variation name" value={orderName} onChange={e => setOrderName(e.target.value)} /><button className="primary-button" onClick={() => finish(true)}>{orderName.trim() ? 'Save variation & finish' : 'Use once & finish'}</button><button className="text-link" onClick={() => setNeedsOrder(false)}>Keep training</button></div>}
   </div>
 }

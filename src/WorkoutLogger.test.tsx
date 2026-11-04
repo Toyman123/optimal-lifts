@@ -17,6 +17,7 @@ afterEach(cleanup)
 describe('explicit set flow', () => {
   it('saves unfinished inputs, starts rest only on completion, and does not restart for corrections', () => {
     render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: 'Set entry' }))
     fireEvent.change(screen.getByLabelText('Bench set 1 weight'), { target: { value: '225' } })
     fireEvent.change(screen.getByLabelText('Bench set 1 reps'), { target: { value: '8' } })
     expect(latest.draft?.rows?.bench[0].reps).toBe('8')
@@ -43,6 +44,7 @@ describe('explicit set flow', () => {
   })
   it('hydrates incomplete rows and completed sets after remount without starting a new timer', () => {
     const view = render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: 'Set entry' }))
     fireEvent.change(screen.getByLabelText('Bench set 1 weight'), { target: { value: '185' } })
     const saved = latest
     view.unmount(); render(<Harness seed={saved} />)
@@ -52,6 +54,7 @@ describe('explicit set flow', () => {
   it('blocks incomplete/invalid sets and preserves legacy note sets when finishing', () => {
     const seed = initial(); seed.draft!.note = 'Bench 225x8'
     render(<Harness seed={seed} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Set entry' }))
     expect(screen.getByRole('button', { name: 'Undo Bench set 1' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Finish workout' }))
     expect(latest.sessions[0].exercises[0].sets[0].weight).toBe(225)
@@ -59,5 +62,42 @@ describe('explicit set flow', () => {
     expect(validRow({ id: 'x', weight: '', reps: '8', completed: false })).toBe(false)
     expect(validRow({ id: 'x', weight: '225', reps: '1.5', completed: false })).toBe(false)
     expect(validRow({ id: 'x', weight: '0', reps: '8', completed: false })).toBe(true)
+  })
+})
+
+describe('notes entry', () => {
+  it('defaults to notes, preserves exact text across remount, and saves parsed sets and comments', () => {
+    const view = render(<Harness />)
+    const note = 'Bench\n225x8 225x6\nfelt strong'
+    fireEvent.change(screen.getByLabelText('Workout notes'), { target: { value: note } })
+    expect(latest.draft?.note).toBe(note)
+    expect(latest.sessions).toHaveLength(0)
+    const saved = latest
+    view.unmount(); render(<Harness seed={saved} />)
+    expect((screen.getByLabelText('Workout notes') as HTMLTextAreaElement).value).toBe(note)
+    fireEvent.click(screen.getByRole('button', { name: 'Finish workout' }))
+    expect(latest.sessions[0].rawNote).toBe(note)
+    expect(latest.sessions[0].exercises[0].sets.map(set => set.reps)).toEqual([8, 6])
+    expect(latest.sessions[0].exercises[0].comment).toContain('felt strong')
+    expect(latest.draft).toBeUndefined()
+  })
+  it('starts rest explicitly from notes and does not restart it while typing or saving', () => {
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: 'Start rest' }))
+    const timerId = screen.getByLabelText('Timer id').textContent
+    expect(timerId).not.toBe('')
+    fireEvent.change(screen.getByLabelText('Workout notes'), { target: { value: 'Bench\n185x8' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save notes' }))
+    expect(screen.getByLabelText('Timer id').textContent).toBe(timerId)
+    expect(latest.sessions[0].exercises[0].sets[0].weight).toBe(185)
+  })
+  it('keeps incomplete text in the draft without silently finishing or replacing it', () => {
+    render(<Harness />)
+    const note = 'Bench\n225x8 225x'
+    fireEvent.change(screen.getByLabelText('Workout notes'), { target: { value: note } })
+    fireEvent.click(screen.getByRole('button', { name: 'Finish workout' }))
+    expect(screen.getByRole('alert').textContent).toContain('incomplete')
+    expect(latest.draft?.note).toBe(note)
+    expect(latest.sessions).toHaveLength(0)
   })
 })
