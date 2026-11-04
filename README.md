@@ -1,6 +1,6 @@
 # OptimalLifts
 
-OptimalLifts is a workout tracker I built for my push, pull, and legs routine. It has a charcoal and mint dashboard, explicit set logging, progress charts, and a history I can use across devices.
+OptimalLifts is a workout tracker I built for my push, pull, and legs routine. It has a soft monochrome dashboard, explicit set logging, progress charts, and a history I can use across devices.
 
 ## How it works
 
@@ -22,7 +22,7 @@ Workout data is saved locally in the browser. When you sign in, Supabase stores 
 - Custom routines and exercise variations
 - Structured set entry, previous-set reuse, and Gemini natural-language parsing with a review step
 - Workout history and progress charts
-- Responsive dark dashboard with mint accents
+- Responsive light dashboard with monochrome session artwork and floating navigation
 - Persistent rest timer, pause/resume, workout elapsed time, and haptic feedback
 - Supabase authentication and cloud storage
 - Gemini-powered questions about your saved workout history

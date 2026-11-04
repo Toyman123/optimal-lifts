@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, Barbell, CalendarBlank, CaretLeft, CaretRight, Fire, Timer } from '@phosphor-icons/react'
+import { ArrowRight, Barbell, CalendarBlank, CaretLeft, CaretRight, Fire, Play, ArrowUpRight } from '@phosphor-icons/react'
 import { estimatedOneRepMax } from './parser'
 import type { AppData, Session } from './types'
 
@@ -53,6 +53,9 @@ export function Dashboard({ data, startWorkout, navigate, displayName, onSession
   const selectedDate = dateFromKey(date), stats = dashboardStats(data, selectedDate)
   const active = data.routines.filter(r => !r.archived)
   const next = active.find(r => r.id === data.nextRoutineId) ?? active[0]
+  const featured = active.find(r => r.id === data.draft?.routineId) ?? next
+  const variation = featured?.variations.find(v => !v.archived)
+  const exercises = (variation?.exerciseIds ?? featured?.exercises.filter(e => !e.archived).map(e => e.id) ?? []).map(id => featured?.exercises.find(e => e.id === id)).filter(e => e !== undefined)
   const recent = [...stats.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.savedAt.localeCompare(a.savedAt)).slice(0, 4)
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
   const topValue = Math.max(0, ...stats.week.map(d => d[metric]))
@@ -62,9 +65,14 @@ export function Dashboard({ data, startWorkout, navigate, displayName, onSession
   const units = metric === 'volume' ? 'lb' : metric === 'time' ? 'min' : 'workouts'
   return <div className="page dashboard-page">
     <header className="dashboard-heading">
-      <div><h1>{greeting}{displayName ? `, ${displayName}` : '.'}</h1><p>Keep showing up. Progress compounds.</p></div>
-      <div className="dashboard-heading-actions"><div className="dashboard-date"><label><CalendarBlank size={17} /><span>{date === dateKey(new Date()) ? 'Today, ' : ''}{new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(selectedDate)}</span><input type="date" aria-label="Dashboard date" value={date} onChange={event => { if (event.target.value) setDate(event.target.value) }} /></label><button aria-label="Previous day" onClick={() => setDate(dateKey(shiftDate(selectedDate, -1)))}><CaretLeft /></button><button aria-label="Next day" onClick={() => setDate(dateKey(shiftDate(selectedDate, 1)))}><CaretRight /></button></div><button className="primary-button" onClick={() => active.length ? startWorkout(data.draft?.routineId ?? next?.id) : navigate('workouts')}><Timer size={18} />{data.draft ? 'Continue Workout' : 'Start Workout'}</button></div>
+      <div><p className="eyebrow">YOUR DAILY ROTATION</p><h1>{greeting}{displayName ? `, ${displayName}` : '.'}</h1></div>
+      <div className="dashboard-heading-actions"><div className="dashboard-date"><label><CalendarBlank size={17} /><span>{date === dateKey(new Date()) ? 'Today, ' : ''}{new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(selectedDate)}</span><input type="date" aria-label="Dashboard date" value={date} onChange={event => { if (event.target.value) setDate(event.target.value) }} /></label><button aria-label="Previous day" onClick={() => setDate(dateKey(shiftDate(selectedDate, -1)))}><CaretLeft /></button><button aria-label="Next day" onClick={() => setDate(dateKey(shiftDate(selectedDate, 1)))}><CaretRight /></button></div></div>
     </header>
+    <section className="session-feature" aria-label="Your next workout">
+      <div className="session-cover"><div className="plate-art" aria-hidden="true"><div className="plate-disc"><span>OPTIMAL</span><i /><span>20 KG</span></div><small>ONE MORE REP.</small></div><div className="session-title"><p>{data.draft ? 'In progress' : 'Up next'} · {exercises.length} exercises</p><h2>{featured?.name ?? 'Your next chapter'}</h2><span>{variation?.name ?? 'Build your training routine'}</span></div></div>
+      <div className="session-queue"><div className="session-queue-heading"><span>THE SESSION</span><button className="text-link" onClick={() => navigate('workouts')}>All workouts <ArrowUpRight size={15} /></button></div><div className="session-controls"><button className="primary-button" onClick={() => featured ? startWorkout(featured.id) : navigate('workouts')}><Play size={17} weight="fill" />{data.draft ? 'Continue Workout' : featured ? 'Start Workout' : 'Create a workout'}</button><button className="secondary-button" onClick={() => navigate('workouts')}><Barbell size={18} /> Routines</button></div><ol className="session-tracklist">{exercises.map((exercise, index) => <li key={exercise.id}><span className="track-number">{String(index + 1).padStart(2, '0')}</span><div><strong>{exercise.name}</strong><small>{exercise.bodyweight ? 'Bodyweight' : 'Strength'} · {featured?.name}</small></div><Barbell size={17} /></li>)}</ol>{!exercises.length && <p className="session-empty">Choose your exercises. Make this session yours.</p>}</div>
+    </section>
+    <div className="overview-heading"><h2>Your training, at a glance</h2><span>Every session adds up.</span></div>
     <div className="dashboard-stats">
       <button className="dashboard-stat panel" onClick={() => navigate('progress')}><span>Total Workouts</span><strong>{stats.sessions.length}<em>{stats.workoutChange}</em></strong><small>vs last 30 days</small></button>
       <button className="dashboard-stat panel" onClick={() => navigate('progress')}><span>Total Volume</span><strong>{number(stats.volume)}<small> lbs</small></strong><small className={stats.volumeChange ? 'stat-gain' : ''}>{stats.volumeChange ?? 'All recorded sets'}</small></button>
