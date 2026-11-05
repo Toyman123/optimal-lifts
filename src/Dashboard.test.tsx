@@ -8,6 +8,23 @@ const data = (sessions: Session[]): AppData => ({ schemaVersion: 3, routines: []
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
 describe('reference dashboard data', () => {
+  it('starts the selected routine and only offers continue for the routine with a draft', () => {
+    const seed = data([])
+    seed.routines = ['Push', 'Pull', 'Legs'].map(name => ({ id: name.toLowerCase(), name, exercises: [{ id: 'bench', name: 'Bench', aliases: [], bodyweight: false }], variations: [] }))
+    seed.routines.push({ id: 'old', name: 'Archived', archived: true, exercises: [], variations: [] })
+    seed.draft = { routineId: 'pull', date: '2026-11-05', note: '', order: [], updatedAt: '2026-11-05T12:00:00Z' }
+    const startWorkout = vi.fn()
+    render(<Dashboard data={seed} startWorkout={startWorkout} navigate={vi.fn()} onSession={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Continue Pull' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Push' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start Push' }))
+    expect(startWorkout).toHaveBeenLastCalledWith('push')
+    fireEvent.click(screen.getByRole('button', { name: 'Pull' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue Pull' }))
+    expect(startWorkout).toHaveBeenLastCalledWith('pull')
+    expect(screen.queryByText('Bench')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Archived' })).toBeNull()
+  })
   it('keeps week boundaries and consecutive training weeks correct across a month change', () => {
     const stats = dashboardStats(data([session('one', '2026-10-19', 100), session('two', '2026-10-25', 110), session('three', '2026-10-26', 120), session('future', '2026-11-02', 150)]), new Date('2026-11-01T12:00:00'))
     expect(stats.streak).toBe(2)

@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { ArrowRight, Barbell, CalendarBlank, CaretLeft, CaretRight, Play, ArrowUpRight } from '@phosphor-icons/react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { RoutineTabs } from './RoutineTabs'
+import { ArrowRight, Barbell, CalendarBlank, CaretLeft, CaretRight, ArrowUpRight } from '@phosphor-icons/react'
 import { estimatedOneRepMax } from './parser'
 import type { AppData, Session } from './types'
 
@@ -53,9 +55,11 @@ export function Dashboard({ data, startWorkout, navigate, displayName, onSession
   const selectedDate = dateFromKey(date), stats = dashboardStats(data, selectedDate)
   const active = data.routines.filter(r => !r.archived)
   const next = active.find(r => r.id === data.nextRoutineId) ?? active[0]
-  const featured = active.find(r => r.id === data.draft?.routineId) ?? next
-  const variation = featured?.variations.find(v => !v.archived)
-  const exercises = (variation?.exerciseIds ?? featured?.exercises.filter(e => !e.archived).map(e => e.id) ?? []).map(id => featured?.exercises.find(e => e.id === id)).filter(e => e !== undefined)
+  const [selectedId, setSelectedId] = useState(data.draft?.routineId ?? next?.id)
+  const featured = active.find(routine => routine.id === selectedId) ?? next
+  const continuing = Boolean(featured && data.draft?.routineId === featured.id)
+  const reduced = useReducedMotion()
+  const lastSession = [...data.sessions].filter(session => session.routineId === featured?.id).sort((a, b) => b.date.localeCompare(a.date))[0]
   const recent = [...stats.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.savedAt.localeCompare(a.savedAt)).slice(0, 4)
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
   const topValue = Math.max(0, ...stats.week.map(d => d[metric]))
@@ -68,9 +72,12 @@ export function Dashboard({ data, startWorkout, navigate, displayName, onSession
       <div><p className="eyebrow">YOUR TRAINING</p><h1>{greeting}{displayName ? `, ${displayName}` : '.'}</h1></div>
       <div className="dashboard-heading-actions"><div className="dashboard-date"><label><CalendarBlank size={17} /><span>{date === dateKey(new Date()) ? 'Today, ' : ''}{new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(selectedDate)}</span><input type="date" aria-label="Dashboard date" value={date} onChange={event => { if (event.target.value) setDate(event.target.value) }} /></label><button aria-label="Previous day" onClick={() => setDate(dateKey(shiftDate(selectedDate, -1)))}><CaretLeft /></button><button aria-label="Next day" onClick={() => setDate(dateKey(shiftDate(selectedDate, 1)))}><CaretRight /></button></div></div>
     </header>
-    <section className="session-feature" aria-label="Your next workout">
-      <div className="session-cover"><div className="session-art" aria-hidden="true"><span className="session-art-back" /><span className="session-art-front"><Barbell size={120} weight="duotone" /></span></div><div className="session-title"><p>{data.draft ? 'In progress' : 'Up next'} · {exercises.length} exercises</p><h2>{featured?.name ?? 'Your next chapter'}</h2><span>{variation?.name ?? 'Build your training routine'}</span></div></div>
-      <div className="session-queue"><div className="session-queue-heading"><span>THE SESSION</span><button className="text-link" onClick={() => navigate('workouts')}>All workouts <ArrowUpRight size={15} /></button></div><div className="session-controls"><button className="primary-button" onClick={() => featured ? startWorkout(featured.id) : navigate('workouts')}><Play size={17} weight="fill" />{data.draft ? 'Continue Workout' : featured ? 'Start Workout' : 'Create a workout'}</button><button className="secondary-button" onClick={() => navigate('workouts')}><Barbell size={18} /> Routines</button></div><ol className="session-tracklist">{exercises.map((exercise, index) => <li key={exercise.id}><span className="track-number">{String(index + 1).padStart(2, '0')}</span><div><strong>{exercise.name}</strong><small>{exercise.bodyweight ? 'Bodyweight' : 'Strength'} · {featured?.name}</small></div><Barbell size={17} /></li>)}</ol>{!exercises.length && <p className="session-empty">Choose your exercises. Make this session yours.</p>}</div>
+    <section className="training-focus" aria-label="Your next workout">
+      <RoutineTabs routines={active} value={featured?.id} onChange={setSelectedId} />
+      <div className="training-focus-body">
+        <div><p className="focus-status">{continuing ? <><i /> In progress</> : 'Next session'}</p><motion.h2 key={featured?.id} initial={reduced ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .18 }}>{featured?.name ?? 'Your workout'}</motion.h2><p className="focus-last">{lastSession ? 'Last trained ' + new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(dateFromKey(lastSession.date)) : 'Your notes and timer, ready to go.'}</p></div>
+        <motion.button className="session-launch" whileHover={reduced ? undefined : { y: -3 }} whileTap={reduced ? undefined : { scale: .96 }} onClick={() => featured ? startWorkout(featured.id) : navigate('workouts')} aria-label={featured ? (continuing ? 'Continue ' : 'Start ') + featured.name : 'Create a workout'}><span>{continuing ? 'Continue' : featured ? 'Start session' : 'Create workout'}</span><span className="launch-circle"><ArrowUpRight size={27} weight="bold" /></span></motion.button>
+      </div>
     </section>
     <div className="dashboard-grid">
       <section className="recent-workouts panel"><header><h2>Recent Workouts</h2><button className="text-link" onClick={() => navigate('progress')}>View all <ArrowRight size={13} /></button></header><div className="recent-list">{recent.length ? recent.map(session => <button className="recent-row" aria-label={`View ${session.routineName} from ${session.date}`} key={session.id} onClick={() => onSession(session)}><span className="workout-symbol"><Barbell size={22} weight="fill" /></span><span className="recent-copy"><strong>{session.routineName}</strong><small>{new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(dateFromKey(session.date))}{session.durationSeconds !== undefined ? ` · ${durationLabel(session.durationSeconds)}` : ''}</small></span><CaretRight size={17} /></button>) : <div className="dashboard-empty"><Barbell size={28} /><p>No workouts recorded yet.</p><button className="text-link" onClick={() => navigate('workouts')}>Choose a workout <ArrowRight /></button></div>}</div></section>
