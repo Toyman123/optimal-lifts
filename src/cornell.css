@@ -1,0 +1,78 @@
+/* Shared visual language: spacious system type, quiet gray, and muted AppDev-inspired red. */
+:root { --site-font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; --canvas: #f0f1f5; --canvas-deep: #e9ebf0; --surface: #fafbfc; --surface-soft: #e8eaef; --ink: #101113; --muted: #70747d; --line: #e0e3e9; --mint: #ae5043; --forest: #101113; --forest-2: #ae5043; --lime: #ae5043; --lime-soft: #f5e5e1; --radius: 12px; --radius-lg: 16px; font-family: var(--site-font); }
+.brand-lockup { font-family: var(--site-font); text-decoration: none; color: var(--ink); }
+.page { max-width: 1160px; padding-top: 48px; }
+.page-header h1 { font-size: 36px; letter-spacing: -1.1px; }
+.eyebrow { letter-spacing: .07em; }
+.primary-button, .round-button, .coach-input button { color: white; background: #b45246; border-radius: 4px; }
+.primary-button:hover:not(:disabled) { background: #984337; box-shadow: 0 5px 15px #7d44341b; }
+.secondary-button, .back-button, .icon-button, .choice-button { border-radius: 6px; }
+.secondary-button { background: #e8eaef; }
+.text-link { color: #a74a3e; }
+.bottom-nav { border-radius: 14px; background: #fafbfced; box-shadow: 0 6px 25px #333b5410; }
+.nav-item.active { color: #aa4b3e; }
+.dashboard-heading h1 { font-size: 32px; letter-spacing: -1.1px; }
+.dashboard-heading { margin-bottom: 30px; }
+.dashboard-heading .eyebrow { letter-spacing: .1em; }
+.dashboard-date { border-radius: 5px; background: #fafbfc; }
+.session-feature { position: relative; padding: 28px 30px 42px; gap: 65px; }
+.session-cover { position: relative; }
+.session-art { height: 225px; max-width: 300px; margin: auto; display: grid; place-items: center; position: relative; }
+.session-art-back { position: absolute; width: 235px; height: 195px; background: #efd2cd; border-radius: 60% 40% 51% 49% / 46% 57% 43% 54%; transform: rotate(-25deg); }
+.session-art-front { position: relative; width: 195px; height: 170px; display: grid; place-items: center; color: #a44d40; background: #f8e9e5; border-radius: 45% 55% 54% 46% / 60% 43% 57% 40%; transform: rotate(15deg); }
+.session-art-front svg { transform: rotate(-40deg); }
+.session-title { margin-top: 17px; }
+.session-title h2 { font-size: 38px; letter-spacing: -1.2px; }
+.session-title p { color: #7c6b69; }
+.session-title > span { font-size: 13px; }
+.session-controls > button { border-radius: 5px; }
+.session-tracklist li { min-height: 58px; border-bottom: 1px solid #e4e6ec; }
+.session-tracklist li:last-child { border: 0; }
+.session-tracklist strong { font-size: 13px; font-weight: 550; }
+.session-tracklist li > svg { color: #bd857d; }
+.recent-workouts, .weekly-activity { background: #fafbfc; border-radius: 10px; padding-top: 16px; }
+.recent-workouts h2, .weekly-activity h2 { font-size: 16px; letter-spacing: -.3px; }
+.workout-symbol, .exercise-symbol { background: #f5e8e4; color: #a94c40; border-radius: 10px; }
+.activity-bar { fill: #bd796d; }
+.activity-day:hover .activity-bar, .activity-day:focus .activity-bar { fill: #a74e41; }
+.week-summary > div { border-radius: 6px; }
+.workout-list-card, .exercise-log, .chart-card, .settings-group, .coach-panel, .session-card, .training-summary, .library-routine, .workout-notes { border-radius: 10px; box-shadow: none; }
+.workout-list-card .round-button { border-radius: 8px; }
+.exercise-log h2 { font-size: 16px; }
+.manual-rest { border-radius: 10px; }
+.manual-rest select { border-radius: 5px; }
+.log-set-row input { border-radius: 6px; }
+.set-check[aria-pressed=true] svg { background: #ae5043; }
+.log-set-row.is-complete input { background: #f1e9e6; }
+.workout-notes > textarea { border-radius: 6px; background: #f1f2f6; border-color: transparent; font-size: 14px; }
+.workout-notes > label { font-size: 22px; letter-spacing: -.5px; }
+.workout-notes > p { font-size: 13px; }
+.entry-switch { border-radius: 7px; }
+.entry-switch button.active { border-radius: 5px; background: #f2e3de; color: #a84e41; }
+.rest-dock, .workout-dock { background: #33363f; border-radius: 12px; }
+.rest-dock.complete { background: #efd3cb; }
+.dock-art { background: #bd776b; border-radius: 7px; }
+.dock-play { color: #ab5143; }
+.feature-art svg { flex: none; }
+.rail-footer { font-family: var(--site-font); }
+@media(min-width:900px) {
+  .desktop-rail { padding-top: 39px; background: #fafbfc; border-right: 1px solid #e7e9ee; }
+  .rail-nav .nav-item { border-radius: 6px; font-size: 12px; }
+  .rail-nav .nav-item.active { background: #f4e7e3; color: #a34a3e; }
+  .rail-nav .nav-item.active svg { color: #a34a3e; }
+}
+@media(max-width:700px) {
+  .page { padding-top: 23px; }
+  .page-header h1 { font-size: 30px; }
+  .dashboard-heading h1 { font-size: 23px; }
+  .session-feature { padding: 0 3px 30px; gap: 25px; }
+  .session-art { height: 190px; }
+  .session-art-back { width: 205px; height: 170px; }
+  .session-art-front { width: 170px; height: 145px; }
+  .session-art-front svg { width: 100px; }
+  .session-title { margin-top: 6px; }
+  .session-title h2 { font-size: 35px; }
+  .training-page { padding-top: 18px; }
+  .training-heading h1 { font-size: 28px; }
+  .training-heading > .primary-button { border-radius: 5px; }
+}

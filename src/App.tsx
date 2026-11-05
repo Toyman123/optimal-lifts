@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom'
 import { WorkoutLogger, RestTimerBar } from './WorkoutLogger'
 import { useRestTimer, workoutKey } from './useRestTimer'
 import { Dashboard } from './Dashboard'
+import { Landing } from './Landing'
 import { ExerciseCatalog, WorkoutLibrary } from './Library'
 import { createSeedData } from './data'
 import { renameExerciseForFutureWorkouts } from './exercises'
@@ -53,7 +54,7 @@ function Pressable({ children, className = '', onClick, type = 'button', disable
   </motion.button>
 }
 
-function App() {
+function TrainingApp() {
   const [data, setData] = useState<AppData>(() => loadData())
   const cloud = useCloudSync(data, setData)
   const [view, setView] = useState<View>('home')
@@ -105,12 +106,12 @@ function App() {
   }
   return <div className="app-shell">
     <aside className="desktop-rail">
-      <button className="brand-lockup" onClick={() => navigate('home')}><DumbbellMark /><span>OptimalLifts</span></button>
+      <a className="brand-lockup" href="/" aria-label="Optimal Lifts home"><DumbbellMark /><span>OptimalLifts</span></a>
       <Navigation view={view} navigate={navigate} vertical />
       <button className="rail-footer" onClick={() => navigate('settings')}><UserCircle size={32} weight="duotone" /><span><strong>{cloud.displayName ?? "Your profile"}</strong><small>{cloud.email ?? "Local account"}</small></span></button>
     </aside>
     <main id="main-content" className="main-stage">
-      <div className="mobile-topbar"><button className="brand-lockup" onClick={() => navigate('home')}><DumbbellMark size={28} /><span>OptimalLifts</span></button></div>
+      <div className="mobile-topbar"><a className="brand-lockup" href="/" aria-label="Optimal Lifts home"><DumbbellMark size={28} /><span>OptimalLifts</span></a></div>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={view} {...routeMotion} className="route">
           {view === 'home' && <Dashboard data={data} startWorkout={startWorkout} navigate={navigate} displayName={cloud.displayName?.split(" ")[0]} onSession={openSession} />}
@@ -299,6 +300,15 @@ function Settings({ data, setData, toast, cloud }: { data: AppData; setData: Rea
 
 function Sheet({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return <motion.div className="sheet-layer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><motion.button className="sheet-scrim" onClick={onClose} aria-label="Close" /><motion.section className={wide ? 'sheet wide' : 'sheet'} role="dialog" aria-modal="true" aria-label={title} initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 330, damping: 32 }}><div className="sheet-handle" /><header><h2>{title}</h2><Pressable className="icon-button" onClick={onClose} ariaLabel="Close"><X /></Pressable></header><div className="sheet-body">{children}</div></motion.section></motion.div>
+}
+
+export function showsLanding(location: Pick<Location, 'pathname' | 'hash' | 'search'>) {
+  const callback = /(?:access_token|refresh_token|error|type)=/.test(location.hash) || new URLSearchParams(location.search).has('code')
+  return location.pathname === '/' && !callback
+}
+
+function App() {
+  return showsLanding(window.location) ? <Landing /> : <TrainingApp />
 }
 
 export default App

@@ -1,6 +1,6 @@
 # OptimalLifts
 
-OptimalLifts is a workout tracker I built for my push, pull, and legs routine. It has a soft monochrome dashboard, explicit set logging, progress charts, and a history I can use across devices.
+OptimalLifts is a workout tracker I built for my push, pull, and legs routine. It has a notes-first workout log, a persistent rest timer, progress charts, and a history I can use across devices.
 
 ## How it works
 
@@ -22,7 +22,7 @@ Workout data is saved locally in the browser. When you sign in, Supabase stores 
 - Custom routines and exercise variations
 - Structured set entry, previous-set reuse, and Gemini natural-language parsing with a review step
 - Workout history and progress charts
-- Responsive light dashboard with monochrome session artwork and floating navigation
+- Responsive homepage and tracker with spacious type, muted red controls, and organic graphics
 - Persistent rest timer, pause/resume, workout elapsed time, and haptic feedback
 - Supabase authentication and cloud storage
 - Gemini-powered questions about your saved workout history
@@ -64,3 +64,7 @@ This is a personal project that I actively use. Supabase stores each signed-in u
 The app-level rest clock uses persisted deadlines rather than decrementing callbacks. It continues across navigation and reconciles on focus, visibility changes, and page restoration. A paused timer retains remaining time across reloads. Finishing a workout clears its timer; parked workout drafts retain their timer identity. Timer ticks stay local and do not trigger cloud writes. Sound and vibration alerts require browser support; an operating system may suspend background execution, so exact background alarm delivery is not guaranteed. The countdown catches up on return.
 
 Regression tests cover timer persistence, throttled callbacks, pause/resume, alert deduplication, explicit completion, corrections, unfinished rows, legacy notes, and single-session saves.
+
+## Homepage and tracker
+
+The homepage lives at `/`; the workout tracker lives at `/app`. Installed app launches go straight to `/app`. Authentication callbacks at the root still open the tracker. The design takes its layout, system typography, restrained red accents, and organic shapes from the Cornell AppDev website; the implementation remains React and Vite. The homepage previews use example workout data, not account data.
