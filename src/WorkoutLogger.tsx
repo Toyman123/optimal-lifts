@@ -80,7 +80,7 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast }:
   const completeRow = (exerciseId: string, row: WorkoutRow) => {
     if (!row.completed && !validRow(row)) { setError('Enter a weight from 0–2,000 lb and 1–100 whole reps before completing a set.'); return }
     updateRow(exerciseId, row.id, { completed: !row.completed })
-    if (!row.completed) { navigator.vibrate?.(35); clock.start(key, exerciseId, exercises.find(e => e.id === exerciseId)!.name, restFor(exerciseId)) }
+    if (!row.completed) { clock.start(key, exerciseId, exercises.find(e => e.id === exerciseId)!.name, restFor(exerciseId)) }
   }
   const finish = (saveOrder = false) => {
     if (!completed) return

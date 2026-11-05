@@ -1,16 +1,16 @@
-/* Shared visual language: spacious system type, quiet gray, and muted AppDev-inspired red. */
-:root { --site-font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; --canvas: #f0f1f5; --canvas-deep: #e9ebf0; --surface: #fafbfc; --surface-soft: #e8eaef; --ink: #101113; --muted: #70747d; --line: #e0e3e9; --mint: #ae5043; --forest: #101113; --forest-2: #ae5043; --lime: #ae5043; --lime-soft: #f5e5e1; --radius: 12px; --radius-lg: 16px; font-family: var(--site-font); }
+/* Shared visual language: spacious system type, quiet gray, and black accents. */
+:root { --site-font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; --canvas: #f0f1f5; --canvas-deep: #e9ebf0; --surface: #fafbfc; --surface-soft: #e8eaef; --ink: #101113; --muted: #70747d; --line: #e0e3e9; --mint: #282828; --forest: #101113; --forest-2: #282828; --lime: #282828; --lime-soft: #e8e8e8; --radius: 12px; --radius-lg: 16px; font-family: var(--site-font); }
 .brand-lockup { font-family: var(--site-font); text-decoration: none; color: var(--ink); }
 .page { max-width: 1160px; padding-top: 48px; }
 .page-header h1 { font-size: 36px; letter-spacing: -1.1px; }
 .eyebrow { letter-spacing: .07em; }
-.primary-button, .round-button, .coach-input button { color: white; background: #b45246; border-radius: 4px; }
-.primary-button:hover:not(:disabled) { background: #984337; box-shadow: 0 5px 15px #7d44341b; }
+.primary-button, .round-button, .coach-input button { color: white; background: #292929; border-radius: 4px; }
+.primary-button:hover:not(:disabled) { background: #222222; box-shadow: 0 5px 15px #2020201b; }
 .secondary-button, .back-button, .icon-button, .choice-button { border-radius: 6px; }
 .secondary-button { background: #e8eaef; }
-.text-link { color: #a74a3e; }
+.text-link { color: #252525; }
 .bottom-nav { border-radius: 14px; background: #fafbfced; box-shadow: 0 6px 25px #333b5410; }
-.nav-item.active { color: #aa4b3e; }
+.nav-item.active { color: #262626; }
 .dashboard-heading h1 { font-size: 32px; letter-spacing: -1.1px; }
 .dashboard-heading { margin-bottom: 30px; }
 .dashboard-heading .eyebrow { letter-spacing: .1em; }
@@ -18,23 +18,23 @@
 .session-feature { position: relative; padding: 28px 30px 42px; gap: 65px; }
 .session-cover { position: relative; }
 .session-art { height: 225px; max-width: 300px; margin: auto; display: grid; place-items: center; position: relative; }
-.session-art-back { position: absolute; width: 235px; height: 195px; background: #efd2cd; border-radius: 60% 40% 51% 49% / 46% 57% 43% 54%; transform: rotate(-25deg); }
-.session-art-front { position: relative; width: 195px; height: 170px; display: grid; place-items: center; color: #a44d40; background: #f8e9e5; border-radius: 45% 55% 54% 46% / 60% 43% 57% 40%; transform: rotate(15deg); }
+.session-art-back { position: absolute; width: 235px; height: 195px; background: #d8d8d8; border-radius: 60% 40% 51% 49% / 46% 57% 43% 54%; transform: rotate(-25deg); }
+.session-art-front { position: relative; width: 195px; height: 170px; display: grid; place-items: center; color: #262626; background: #ececec; border-radius: 45% 55% 54% 46% / 60% 43% 57% 40%; transform: rotate(15deg); }
 .session-art-front svg { transform: rotate(-40deg); }
 .session-title { margin-top: 17px; }
 .session-title h2 { font-size: 38px; letter-spacing: -1.2px; }
-.session-title p { color: #7c6b69; }
+.session-title p { color: #2c2c2c; }
 .session-title > span { font-size: 13px; }
 .session-controls > button { border-radius: 5px; }
 .session-tracklist li { min-height: 58px; border-bottom: 1px solid #e4e6ec; }
 .session-tracklist li:last-child { border: 0; }
 .session-tracklist strong { font-size: 13px; font-weight: 550; }
-.session-tracklist li > svg { color: #bd857d; }
+.session-tracklist li > svg { color: #3a3a3a; }
 .recent-workouts, .weekly-activity { background: #fafbfc; border-radius: 10px; padding-top: 16px; }
 .recent-workouts h2, .weekly-activity h2 { font-size: 16px; letter-spacing: -.3px; }
-.workout-symbol, .exercise-symbol { background: #f5e8e4; color: #a94c40; border-radius: 10px; }
-.activity-bar { fill: #bd796d; }
-.activity-day:hover .activity-bar, .activity-day:focus .activity-bar { fill: #a74e41; }
+.workout-symbol, .exercise-symbol { background: #eaeaea; color: #262626; border-radius: 10px; }
+.activity-bar { fill: #363636; }
+.activity-day:hover .activity-bar, .activity-day:focus .activity-bar { fill: #262626; }
 .week-summary > div { border-radius: 6px; }
 .workout-list-card, .exercise-log, .chart-card, .settings-group, .coach-panel, .session-card, .training-summary, .library-routine, .workout-notes { border-radius: 10px; box-shadow: none; }
 .workout-list-card .round-button { border-radius: 8px; }
@@ -42,24 +42,24 @@
 .manual-rest { border-radius: 10px; }
 .manual-rest select { border-radius: 5px; }
 .log-set-row input { border-radius: 6px; }
-.set-check[aria-pressed=true] svg { background: #ae5043; }
+.set-check[aria-pressed=true] svg { background: #282828; }
 .log-set-row.is-complete input { background: #f1e9e6; }
 .workout-notes > textarea { border-radius: 6px; background: #f1f2f6; border-color: transparent; font-size: 14px; }
 .workout-notes > label { font-size: 22px; letter-spacing: -.5px; }
 .workout-notes > p { font-size: 13px; }
 .entry-switch { border-radius: 7px; }
-.entry-switch button.active { border-radius: 5px; background: #f2e3de; color: #a84e41; }
+.entry-switch button.active { border-radius: 5px; background: #e6e6e6; color: #262626; }
 .rest-dock, .workout-dock { background: #33363f; border-radius: 12px; }
-.rest-dock.complete { background: #efd3cb; }
-.dock-art { background: #bd776b; border-radius: 7px; }
-.dock-play { color: #ab5143; }
+.rest-dock.complete { background: #d8d8d8; }
+.dock-art { background: #353535; border-radius: 7px; }
+.dock-play { color: #282828; }
 .feature-art svg { flex: none; }
 .rail-footer { font-family: var(--site-font); }
 @media(min-width:900px) {
   .desktop-rail { padding-top: 39px; background: #fafbfc; border-right: 1px solid #e7e9ee; }
   .rail-nav .nav-item { border-radius: 6px; font-size: 12px; }
-  .rail-nav .nav-item.active { background: #f4e7e3; color: #a34a3e; }
-  .rail-nav .nav-item.active svg { color: #a34a3e; }
+  .rail-nav .nav-item.active { background: #e9e9e9; color: #252525; }
+  .rail-nav .nav-item.active svg { color: #252525; }
 }
 @media(max-width:700px) {
   .page { padding-top: 23px; }
@@ -85,20 +85,20 @@
 .routine-tabs { position: relative; display: flex; flex-wrap: wrap; width: fit-content; max-width: 100%; gap: 3px; padding: 5px; border-radius: 28px; background: #e5e8ee; }
 .routine-tabs > button { position: relative; isolation: isolate; padding: 11px 25px; min-height: 43px; color: #747b89; border-radius: 24px; font-size: 15px; font-weight: 550; white-space: nowrap; }
 .routine-tabs > button > span:last-child { position: relative; }
-.routine-tabs > button[aria-pressed=true] { color: #a24c42; }
+.routine-tabs > button[aria-pressed=true] { color: #262626; }
 .routine-tabs > button:hover { color: #383f4c; }
 .routine-tab-highlight { position: absolute; z-index: -1; inset: 0; background: #fff; border-radius: 24px; box-shadow: 0 3px 10px #303b4b0c, 0 1px 2px #303b4b06; }
 .training-focus { padding: 25px 30px 30px; margin-bottom: 25px; border: 1px solid #fff; border-radius: 28px; background: #fafbfc; box-shadow: 0 9px 24px #333b5404; }
 .training-focus-body { display: flex; justify-content: space-between; align-items: center; gap: 25px; padding-top: 38px; }
 .training-focus-body > div { min-width: 0; }
 .focus-status { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #808796; }
-.focus-status i, .routine-status i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #ac6051; box-shadow: 0 0 0 4px #ac605110; }
+.focus-status i, .routine-status i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #2c2c2c; box-shadow: 0 0 0 4px #2c2c2c10; }
 .training-focus h2 { font-size: clamp(48px, 6vw, 76px); font-weight: 600; letter-spacing: -3.5px; line-height: 1.15; margin: 6px 0 14px; overflow-wrap: anywhere; }
 .focus-last { font-size: 12px; line-height: 1.5; color: #7c8391; }
 .session-launch { display: flex; align-items: center; gap: 16px; padding: 0; background: transparent; flex: none; }
 .session-launch > span:first-child { font-size: 12px; color: #5c6574; }
 .launch-circle { display: grid; place-items: center; height: 58px; width: 58px; border-radius: 50%; background: #282e39; color: white; box-shadow: 0 8px 16px #2d35451b; transition: box-shadow .2s, background .2s; }
-.session-launch:hover .launch-circle { background: #a7584c; box-shadow: 0 12px 22px #99594927; }
+.session-launch:hover .launch-circle { background: #2a2a2a; box-shadow: 0 12px 22px #28282827; }
 .session-launch:hover svg { transform: translate(2px,-2px); }
 .session-launch svg { transition: transform .2s; }
 .routine-list { display: grid; gap: 12px; }
@@ -121,7 +121,7 @@
 .routine-menu button:hover:not(:disabled) { background: #f0f2f6; }
 .workout-tools { display: flex; gap: 24px; margin: 22px 5px; }
 .workout-tools button { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #828b9b; padding: 8px 0; }
-.workout-tools button:hover { color: #a75d51; }
+.workout-tools button:hover { color: #2b2b2b; }
 .add-routine-drawer { margin-top: 27px; }
 .add-routine-drawer > summary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 17px; border-radius: 24px; background: #e6e9ef; color: #566175; font-size: 12px; cursor: pointer; list-style: none; }
 .add-routine-drawer > summary:hover { background: #dce1ea; }
@@ -184,3 +184,13 @@
 @media(prefers-reduced-motion:reduce) { .routine-menu > div { animation: none; } .session-launch svg, .routine-arrow svg, .launch-circle, .routine-arrow, .routine-row { transition: none; } .session-launch:hover svg, .routine-open:hover .routine-arrow svg { transform: none; } }
 .progress-page .chart-space { height: 175px; }
 .progress-page .chart-empty { bottom: 32px; }
+/* Shared press response also covers plain buttons, links, and disclosure controls. */
+button:not(:disabled), a[href], summary { -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion:no-preference) {
+  button:not(:disabled):active, a[href]:active, summary:active { scale: .98; }
+}
+.recent-row { padding: 15px 2px; min-height: 74px; border-bottom: 1px solid var(--line); }
+.recent-row:hover { background: #f0f2f5; }
+.recent-copy > strong { font-size: 14px; font-weight: 550; }
+.recent-copy > small { color: #858c98; font-size: 11px; }
+.recent-row > svg { width: 15px; color: #929aa8; }

@@ -49,7 +49,7 @@ function Pressable({ children, className = '', onClick, type = 'button', disable
   children: React.ReactNode; className?: string; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; ariaLabel?: string
 }) {
   const reduced = useReducedMotion()
-  return <motion.button type={type} className={className} onClick={() => { navigator.vibrate?.(8); onClick?.() }} disabled={disabled} aria-label={ariaLabel}
+  return <motion.button type={type} className={className} onClick={onClick} disabled={disabled} aria-label={ariaLabel}
     whileTap={disabled || reduced ? undefined : { y: 2, scale: .975 }} transition={{ type: 'spring', stiffness: 520, damping: 28 }}>
     {children}
   </motion.button>
