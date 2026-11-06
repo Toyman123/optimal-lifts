@@ -23,7 +23,7 @@ Workout data is saved locally in the browser. When you sign in, Supabase stores 
 - Structured set entry, previous-set reuse, and Gemini natural-language parsing with a review step
 - Workout history and progress charts
 - Responsive homepage and tracker with spacious type, black controls, and organic graphics
-- Persistent rest timer, pause/resume, workout elapsed time, and haptic feedback
+- Persistent rest timer, pause/resume, and haptic feedback
 - Supabase authentication and cloud storage
 - Gemini-powered questions about your saved workout history
 
@@ -68,3 +68,5 @@ Regression tests cover timer persistence, throttled callbacks, pause/resume, ale
 ## Homepage and tracker
 
 The homepage lives at `/`; the workout tracker lives at `/app`. Installed app launches go straight to `/app`. Authentication callbacks at the root still open the tracker. The design takes its layout, system typography, black accents, and organic shapes from the Cornell AppDev website; the implementation remains React and Vite. The homepage previews use example workout data, not account data.
+
+Progress includes a labeled sample-history preview with one workout per day and no session-duration values. These examples stay separate from saved workouts and cloud sync. Coach is available beneath the workout editor and uses saved workout history.

@@ -1,8 +1,8 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
-  Archive, ArrowLeft, ArrowRight, ArrowUpRight, DotsThree, Barbell, Books, CaretDown, ChartLineUp, Cloud,
+  Archive, ArrowLeft, ArrowRight, ArrowUpRight, DotsThree, Barbell, CaretDown, ChartLineUp, Cloud,
   ChatCircleText, Check, DotsSixVertical, Gear, House, Info,
-  NotePencil, PaperPlaneRight, Play, Plus, Repeat, Trash, UserCircle, WarningCircle, X,
+  NotePencil, Play, Plus, Repeat, Trash, UserCircle, WarningCircle, X,
 } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -11,8 +11,8 @@ import { useRestTimer, workoutKey } from './useRestTimer'
 import { Dashboard } from './Dashboard'
 import { Landing } from './Landing'
 import { RoutineTabs } from './RoutineTabs'
-import { ExerciseCatalog, WorkoutLibrary } from './Library'
 import { createSeedData } from './data'
+import { createSampleHistory } from './sampleHistory'
 import { renameExerciseForFutureWorkouts } from './exercises'
 import { getCloudAccessToken, useCloudSync, type CloudState } from './cloud'
 import { estimatedOneRepMax } from './parser'
@@ -20,7 +20,7 @@ import { sessionMetric, type ChartMetric } from './progress'
 import { clearData, loadData, saveData } from './storage'
 import type { AppData, Draft, Exercise, Routine, Session } from './types'
 
-type View = 'home' | 'workouts' | 'log' | 'progress' | 'coach' | 'settings' | 'exercises' | 'library'
+type View = 'home' | 'workouts' | 'log' | 'progress' | 'coach' | 'settings'
 const today = () => {
   const date = new Date()
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -101,10 +101,6 @@ function TrainingApp() {
     openWorkout(id)
   }
 
-  const openSession = (session: Session) => {
-    setData(current => ({ ...current, drafts: current.draft && current.draft.editingSessionId !== session.id ? [...(current.drafts ?? []).filter(item => item.routineId !== current.draft!.routineId), current.draft] : current.drafts, draft: { startedAt: Date.now(), isHistorical: true, routineId: session.routineId, variationId: session.variationId, date: session.date, note: session.rawNote, order: session.actualExerciseOrder, editingSessionId: session.id, updatedAt: new Date().toISOString() } }))
-    setSelectedRoutineId(session.routineId); navigate('log')
-  }
   return <div className="app-shell">
     <aside className="desktop-rail">
       <a className="brand-lockup" href="/" aria-label="Optimal Lifts home"><DumbbellMark /><span>OptimalLifts</span></a>
@@ -115,12 +111,10 @@ function TrainingApp() {
       <div className="mobile-topbar"><a className="brand-lockup" href="/" aria-label="Optimal Lifts home"><DumbbellMark size={28} /><span>OptimalLifts</span></a></div>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={view} {...routeMotion} className="route">
-          {view === 'home' && <Dashboard data={data} startWorkout={startWorkout} navigate={navigate} displayName={cloud.displayName?.split(" ")[0]} onSession={openSession} />}
-          {view === 'exercises' && <ExerciseCatalog data={data} />}
-          {view === 'library' && <WorkoutLibrary data={data} startWorkout={startWorkout} />}
+          {view === 'home' && <Dashboard data={data} startWorkout={startWorkout} navigate={navigate} displayName={cloud.displayName?.split(" ")[0]} />}
           {view === 'workouts' && <Workouts data={data} setData={setData} startWorkout={startWorkout} toast={toast} navigate={navigate} />}
-          {view === 'log' && data.draft && <WorkoutLogger key={workoutKey(data.draft)} data={data} setData={setData} clock={clock} onBack={() => navigate('workouts')} onFinish={() => navigate('progress')} toast={toast} />}
-          {view === 'coach' && <div className="page coach-page"><PageHeader eyebrow="Your training, in context" title="AI Coach" /><CoachPanel sessions={data.sessions} /></div>}
+          {view === 'log' && data.draft && <WorkoutLogger key={workoutKey(data.draft)} data={data} setData={setData} clock={clock} onBack={() => navigate('workouts')} onFinish={() => navigate('progress')} toast={toast} coach={<CoachPanel sessions={data.sessions} embedded />} />}
+          {view === 'coach' && <div className="page coach-page"><PageHeader eyebrow="" title="Coach" /><CoachPanel sessions={data.sessions} /></div>}
           {view === 'progress' && <Progress data={data} setData={setData} navigate={navigate} setRoutineId={setSelectedRoutineId} />}
           {view === 'settings' && <Settings data={data} setData={setData} toast={toast} cloud={cloud} />}
         </motion.div>
@@ -137,10 +131,10 @@ function TrainingApp() {
 function Navigation({ view, navigate, vertical = false }: { view: View; navigate: (v: View) => void; vertical?: boolean }) {
   const items: { view: View; label: string; icon: typeof House }[] = [
     { view: 'home', label: 'Dashboard', icon: House }, { view: 'workouts', label: 'Workouts', icon: Barbell },
-    { view: 'exercises', label: 'Exercises', icon: Barbell }, { view: 'progress', label: 'Analytics', icon: ChartLineUp }, { view: 'coach', label: 'AI Coach', icon: ChatCircleText }, { view: 'library', label: 'Library', icon: Books }, { view: 'settings', label: 'Settings', icon: Gear },
+    { view: 'progress', label: 'Analytics', icon: ChartLineUp }, { view: 'coach', label: 'Coach', icon: ChatCircleText }, { view: 'settings', label: 'Settings', icon: Gear },
   ]
   return <nav className={vertical ? 'rail-nav' : 'bottom-nav'} aria-label="Primary navigation">
-    {items.filter(item => vertical || !['exercises', 'library'].includes(item.view)).map(item => { const Icon = item.icon; const active = view === item.view || (item.view === 'workouts' && view === 'log'); return <motion.button key={item.view} onClick={() => navigate(item.view)} className={active ? 'nav-item active' : 'nav-item'} whileTap={{ scale: .92 }} aria-current={active ? 'page' : undefined}>
+    {items.map(item => { const Icon = item.icon; const active = view === item.view || (item.view === 'workouts' && view === 'log'); return <motion.button key={item.view} onClick={() => navigate(item.view)} className={active ? 'nav-item active' : 'nav-item'} whileTap={{ scale: .92 }} aria-current={active ? 'page' : undefined}>
       <span className="nav-icon"><Icon size={22} weight={active ? 'fill' : 'regular'} />{active && <motion.i layoutId={vertical ? 'rail-pill' : 'nav-dot'} />}</span><span>{item.label}</span>
     </motion.button> })}
   </nav>
@@ -174,7 +168,6 @@ function Workouts({ data, setData, startWorkout, toast, navigate }: { navigate: 
       <Pressable className="routine-open" onClick={() => startWorkout(routine.id)} ariaLabel={(data.draft?.routineId === routine.id ? 'Continue ' : 'Start ') + routine.name}><span className="routine-index">{String(index + 1).padStart(2, '0')}</span><span className="routine-name">{routine.name}</span>{data.draft?.routineId === routine.id ? <span className="routine-status"><i /> In progress</span> : data.nextRoutineId === routine.id ? <span className="routine-status">Up next</span> : null}<span className="routine-arrow"><ArrowUpRight size={24} /></span></Pressable>
       <details className="routine-menu" name="routine-actions" onKeyDown={event => { if (event.key === 'Escape') { event.currentTarget.removeAttribute('open'); event.currentTarget.querySelector('summary')?.focus() } }}><summary aria-label={'Options for ' + routine.name}><DotsThree size={23} weight="bold" /></summary><div><button onClick={event => { setEditing(routine); event.currentTarget.closest('details')?.removeAttribute('open') }}><NotePencil /> Edit workout</button><button onClick={event => { setData(current => ({ ...current, nextRoutineId: routine.id })); event.currentTarget.closest('details')?.removeAttribute('open') }}><Check /> Set as next</button><button disabled={index === 0} onClick={() => moveRoutine(routine.id, -1)}>↑ Move earlier</button><button disabled={index === activeRoutines.length - 1} onClick={() => moveRoutine(routine.id, 1)}>↓ Move later</button></div></details>
     </motion.article>)}</div>
-    <div className="workout-tools"><button onClick={() => navigate('exercises')}>Exercises <ArrowUpRight size={15} /></button><button onClick={() => navigate('library')}>Library <ArrowUpRight size={15} /></button></div>
     <details className="add-routine-drawer"><summary><Plus size={18} /> New workout</summary><form className="inline-create" onSubmit={e => { e.preventDefault(); addRoutine() }}><label htmlFor="routine-name">Workout name</label><div><input id="routine-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Upper, Full body, Arms…" /><Pressable type="submit" className="primary-button" disabled={!newName.trim()}><Plus /> Add</Pressable></div></form></details>
     <details className="archive-drawer"><summary><Archive /> Archived workouts <span>{data.routines.filter(r => r.archived).length}</span></summary>{data.routines.filter(r => r.archived).map(r => <button key={r.id} onClick={() => setData(d => ({ ...d, routines: d.routines.map(item => item.id === r.id ? { ...item, archived: false } : item) }))}>{r.name}<Repeat /></button>)}</details>
     <AnimatePresence>{editing && <RoutineEditor routine={data.routines.find(r => r.id === editing.id) ?? editing} onClose={() => setEditing(null)} setData={setData} toast={toast} />}</AnimatePresence>
@@ -208,7 +201,7 @@ function ChoiceMenu({ label, value, options, onChange, compact = false }: { labe
   return <><Pressable className={compact ? 'choice-button compact' : 'choice-button'} onClick={() => setOpen(true)} ariaLabel={label}><span>{compact ? 'Change' : selected?.label ?? 'Choose'}</span><CaretDown weight="bold" /></Pressable>{fullScreenChoice}<AnimatePresence>{open && !compact && <Sheet title={label} onClose={() => setOpen(false)}>{choices}</Sheet>}</AnimatePresence></>
 }
 
-function CoachPanel({ sessions }: { sessions: Session[] }) {
+function CoachPanel({ sessions, embedded = false }: { sessions: Session[]; embedded?: boolean }) {
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState<{ role: 'user' | 'coach'; text: string }[]>([])
   const [status, setStatus] = useState<'idle' | 'asking'>('idle')
@@ -227,7 +220,7 @@ function CoachPanel({ sessions }: { sessions: Session[] }) {
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'The coach is unavailable. Your workout data is unchanged.') }
     finally { setStatus('idle') }
   }
-  return <section className="coach-panel"><header><div className="coach-mark"><ChatCircleText weight="fill" /></div><div><p className="eyebrow">Optimal coach</p><h2>Ask about your training</h2></div><span className="model-chip">Gemini</span></header><div className="coach-feed">{!messages.length && <div className="coach-intro"><p>I can compare recent sessions, spot rep or load trends, and answer from the workouts you’ve saved.</p><div className="suggestion-list">{['What should I try to beat today?', 'How is my pull-up progressing?', 'Compare my last two leg sessions.'].map(item => <Pressable key={item} onClick={() => setQuestion(item)}>{item}<ArrowRight /></Pressable>)}</div></div>}{messages.map((message, index) => <div key={index} className={`chat-bubble ${message.role}`}>{message.text}</div>)}{status === 'asking' && <div className="coach-thinking"><i /><i /><i /></div>}</div>{error && <div className="coach-error"><WarningCircle weight="fill" />{error}</div>}<form className="coach-input" onSubmit={event => { event.preventDefault(); ask() }}><label htmlFor="coach-question" className="sr-only">Ask the workout coach</label><textarea id="coach-question" rows={2} value={question} onChange={event => setQuestion(event.target.value)} placeholder="Ask about your saved workouts…" /><Pressable type="submit" ariaLabel="Ask coach" disabled={!question.trim() || status === 'asking'}><PaperPlaneRight weight="fill" /></Pressable></form><details className="coach-disclosure"><summary>What gets sent to Gemini?</summary><p>Your question and up to 30 recent saved sessions: dates, workout and variation names, exercise order, sets, loads, reps, and comments. Draft text is not sent. Google’s free tier may use submitted content to improve its products.</p></details></section>
+  return <section className={embedded ? 'coach-panel embedded' : 'coach-panel'} aria-label="Workout coach">{embedded && <h2>Coach</h2>}{!messages.length && <p className="coach-context">Ask about your saved sets or what to try next.</p>}{(messages.length > 0 || status === 'asking') && <div className="coach-feed">{messages.map((message, index) => <div key={index} className={`chat-bubble ${message.role}`}>{message.text}</div>)}{status === 'asking' && <div className="coach-thinking" role="status" aria-label="Coach is thinking"><i /><i /><i /></div>}</div>}{error && <p className="coach-error" role="alert">{error}</p>}<form className="coach-input" onSubmit={event => { event.preventDefault(); void ask() }}><label htmlFor="coach-question" className="sr-only">Ask the workout coach</label><textarea id="coach-question" rows={2} maxLength={1200} value={question} onChange={event => setQuestion(event.target.value)} placeholder="Ask a question…" /><Pressable type="submit" ariaLabel="Ask coach" disabled={!question.trim() || status === 'asking'}><ArrowUpRight size={22} /></Pressable></form></section>
 }
 
 function Progress({ data, setData, navigate, setRoutineId }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>>; navigate: (v: View) => void; setRoutineId: (id: string) => void }) {
@@ -243,14 +236,17 @@ function Progress({ data, setData, navigate, setRoutineId }: { data: AppData; se
   useEffect(() => { if (selectedExercise?.bodyweight && metric === 'performance') setMetric('reps') }, [selectedExercise?.bodyweight, metric])
   const [order, setOrder] = useState(progressRoutine?.variations.find(v => !v.archived)?.id ?? 'all')
   useEffect(() => { setOrder(progressRoutine?.variations.find(v => !v.archived)?.id ?? 'all') }, [progressRoutineId])
-  const records = data.sessions.filter(session => session.routineId === progressRoutineId).flatMap(s => s.exercises.filter(e => e.exerciseId === exerciseId).map(e => ({ session: s, exercise: e }))).filter(item => {
+  const [sample, setSample] = useState(() => !data.sessions.some(session => { const age = Date.now() - new Date(session.date + 'T12:00:00').getTime(); return age >= 0 && age <= 45 * 86400000 }))
+  const sampleHistory = useMemo(() => createSampleHistory(data.routines), [data.routines])
+  const chartSessions = sample ? sampleHistory : data.sessions
+  const records = chartSessions.filter(session => session.routineId === progressRoutineId).flatMap(s => s.exercises.filter(e => e.exerciseId === exerciseId).map(e => ({ session: s, exercise: e }))).filter(item => {
     if (range === 'all') return true; const age = Date.now() - new Date(`${item.session.date}T12:00:00`).getTime(); return age <= (range === '3m' ? 92 : 45) * 86400000
   }).filter(item => order === 'all' || item.session.variationId === order).sort((a, b) => a.session.date.localeCompare(b.session.date))
   const points = records.map(r => ({ date: r.session.date, value: sessionMetric(r.exercise.sets, metric), reps: Math.max(...r.exercise.sets.map(s => s.reps)), item: r }))
   const bestWeight = records.length ? Math.max(...records.flatMap(record => record.exercise.sets.map(set => set.weight))) : 0
   const bestReps = points.length ? Math.max(...points.map(p => p.reps)) : 0
   const bestE1rm = records.length ? Math.max(...records.flatMap(r => r.exercise.sets.map(s => estimatedOneRepMax(s.weight, s.reps)))) : 0
-  const sessions = [...data.sessions].filter(session => session.routineId === progressRoutineId).sort((a, b) => b.savedAt.localeCompare(a.savedAt))
+  const sessions = [...chartSessions].filter(session => session.routineId === progressRoutineId).sort((a, b) => b.savedAt.localeCompare(a.savedAt))
   const edit = (session: Session) => { setData(d => ({ ...d, drafts: d.draft && d.draft.editingSessionId !== session.id ? [...(d.drafts ?? []).filter(item => item.routineId !== d.draft!.routineId), d.draft] : d.drafts, draft: { startedAt: Date.now(), isHistorical: true, routineId: session.routineId, variationId: session.variationId, date: session.date, note: session.rawNote, order: session.actualExerciseOrder, editingSessionId: session.id, updatedAt: new Date().toISOString() } })); setRoutineId(session.routineId); navigate('log') }
   const metricMeta: Record<ChartMetric, { label: string; unit: string; help: string }> = {
     performance: { label: 'Rep-adjusted weight', unit: ' lb score', help: 'Average across completed sets: weight × (1 + 0.025 × (reps − 1)). This is a weight comparison score—not the load lifted or a 1RM.' },
@@ -261,20 +257,20 @@ function Progress({ data, setData, navigate, setRoutineId }: { data: AppData; se
   const headline = points.length ? Math.max(...points.map(point => point.value)) : 0
   const change = points.length > 1 ? points.at(-1)!.value - points[0].value : 0
   return <div className="page progress-page"><PageHeader eyebrow="Your training" title="Progress" />
-    <RoutineTabs routines={activeRoutines} value={progressRoutineId} onChange={setProgressRoutineId} label="Workout list" />
+    <RoutineTabs routines={activeRoutines} value={progressRoutineId} onChange={setProgressRoutineId} label="Workout list" /><div className="history-source"><span>{sample ? 'Sample history' : 'Your history'}</span><button onClick={() => setSample(current => !current)}>{sample ? 'Show my workouts' : 'View sample data'}</button></div>
     <div className="progress-toolbar"><ChoiceMenu label="Exercise" value={exerciseId} options={exerciseOptions.map(([value, label]) => ({ value, label }))} onChange={setExerciseId} /><label><span className="sr-only">History range</span><select aria-label="History range" value={range} onChange={event => setRange(event.target.value as typeof range)}><option value="recent">Recent</option><option value="3m">3 months</option><option value="all">All history</option></select></label></div>
     <details className="progress-order"><summary>Exercise order <span>{order === 'all' ? 'All orders' : progressRoutine?.variations.find(v => v.id === order)?.name}</span><CaretDown size={12} /></summary><ChoiceMenu label="Exercise order" value={order} options={[...(progressRoutine?.variations.filter(v => !v.archived).map(v => ({ value: v.id, label: v.name })) ?? []), { value: 'all', label: 'All orders', description: 'Includes named and one-off orders with context' }]} onChange={setOrder} /></details>
     <div className="metric-switch" aria-label="Chart measurement">{(['performance', 'weight', 'reps', 'volume'] as ChartMetric[]).map(item => <Pressable key={item} className={metric === item ? 'active' : ''} ariaLabel={item === 'performance' ? 'Adjusted weight' : item === 'weight' ? 'Weight' : item === 'reps' ? 'Reps' : 'Volume'} disabled={item === 'performance' && selectedExercise?.bodyweight} onClick={() => setMetric(item)}>{item === 'performance' ? 'Adjusted' : item === 'weight' ? 'Weight' : item === 'reps' ? 'Reps' : 'Volume'}</Pressable>)}</div>
-    <section className="chart-card"><div className="chart-title"><div><p>{metricMeta[metric].label}</p><strong>{headline ? `${Math.round(headline * 10) / 10}` : '—'}<small>{headline ? metricMeta[metric].unit : ''}</small></strong><details className="metric-help"><summary>About this measure</summary><p>{metricMeta[metric].help}</p></details></div><div className="chart-context"><span>{order === 'all' ? 'All orders shown with context' : progressRoutine?.variations.find(v => v.id === order)?.name ?? 'Order-aware comparison'}</span>{points.length > 1 && <b className={change >= 0 ? 'positive' : 'negative'}>{change >= 0 ? '+' : ''}{Math.round(change * 10) / 10}{metricMeta[metric].unit} since first</b>}</div></div><LineChart points={points} label={metricMeta[metric].label} unit={metricMeta[metric].unit} onPointClick={point => edit(point.item.session)} />
+    <section className="chart-card"><div className="chart-title"><div><p>{metricMeta[metric].label}</p><strong>{headline ? `${Math.round(headline * 10) / 10}` : '—'}<small>{headline ? metricMeta[metric].unit : ''}</small></strong><details className="metric-help"><summary>About this measure</summary><p>{metricMeta[metric].help}</p></details></div><div className="chart-context"><span>{order === 'all' ? 'All orders shown with context' : progressRoutine?.variations.find(v => v.id === order)?.name ?? 'Order-aware comparison'}</span>{points.length > 1 && <b className={change >= 0 ? 'positive' : 'negative'}>{change >= 0 ? '+' : ''}{Math.round(change * 10) / 10}{metricMeta[metric].unit} since first</b>}</div></div><LineChart points={points} label={metricMeta[metric].label} unit={metricMeta[metric].unit} onPointClick={sample ? undefined : point => edit(point.item.session)} />
       {!points.length && <div className="chart-empty"><ChartLineUp /><p>Your chart begins after you save this exercise.</p><button onClick={() => navigate('workouts')}>Start a workout</button></div>}
     </section>
     <div className="stat-triplet"><article><span>Best reps</span><strong>{bestReps || '—'}</strong><small>in one completed set</small></article><article><span>Estimated 1RM</span><strong>{bestE1rm || '—'}{bestE1rm ? <small> lb</small> : ''}</strong><small>Epley estimate: weight × (1 + reps ÷ 30)</small></article><article><span>Sessions</span><strong>{records.length}</strong><small>in this view</small></article></div>
-    {!!records.length && <section className="section-block"><div className="section-heading"><h2>Behind the line</h2><span>Tap a session to correct it</span></div><div className="history-mini">{[...records].reverse().map(({ session, exercise }) => <Pressable key={session.id} onClick={() => edit(session)}><span>{formatDate(session.date)}</span><strong>{Math.max(...exercise.sets.map(s => s.weight))} lb</strong><small>#{exercise.position} · {session.variationName ?? 'Order unknown'} · {exercise.sets.map(s => `${s.weight}×${s.reps}`).join(', ')}</small><ArrowRight /></Pressable>)}</div></section>}
-    <section className="section-block"><div className="section-heading"><div><p className="eyebrow">Saved sessions</p><h2>{progressRoutine?.name ?? 'Workout'} history</h2></div><span>{sessions.length} sessions</span></div>{!sessions.length ? <div className="progress-history-empty"><p>Your saved {progressRoutine?.name.toLowerCase()} sessions will appear here.</p></div> : <div className="timeline">{sessions.map((session, index) => <Pressable className="session-card" key={session.id} onClick={() => edit(session)}><div className="timeline-date"><strong>{new Date(`${session.date}T12:00`).getDate()}</strong><span>{new Intl.DateTimeFormat('en-US', { month: 'short' }).format(new Date(`${session.date}T12:00`))}</span></div><div className="session-copy"><p>{session.routineName}<span className={session.orderKind === 'one-off' ? 'order-tag one-off' : 'order-tag'}>{session.orderKind === 'one-off' ? 'One-off order' : session.variationName ?? 'Order unknown'}</span></p><h2>{session.exercises.length} exercises</h2><span>{session.exercises.reduce((n, e) => n + e.sets.length, 0)} working sets · Session {sessions.length - index}</span></div><div className="session-arrow"><NotePencil /><span>Edit</span></div></Pressable>)}</div>}</section>
+    {!sample && !!records.length && <section className="section-block"><div className="section-heading"><h2>Behind the line</h2><span>Tap a session to correct it</span></div><div className="history-mini">{[...records].reverse().map(({ session, exercise }) => <Pressable key={session.id} onClick={() => edit(session)}><span>{formatDate(session.date)}</span><strong>{Math.max(...exercise.sets.map(s => s.weight))} lb</strong><small>#{exercise.position} · {session.variationName ?? 'Order unknown'} · {exercise.sets.map(s => `${s.weight}×${s.reps}`).join(', ')}</small><ArrowRight /></Pressable>)}</div></section>}
+    {!sample && <section className="section-block"><div className="section-heading"><div><p className="eyebrow">Saved sessions</p><h2>{progressRoutine?.name ?? 'Workout'} history</h2></div><span>{sessions.length} sessions</span></div>{!sessions.length ? <div className="progress-history-empty"><p>Your saved {progressRoutine?.name.toLowerCase()} sessions will appear here.</p></div> : <div className="timeline">{sessions.map((session, index) => <Pressable className="session-card" key={session.id} onClick={() => edit(session)}><div className="timeline-date"><strong>{new Date(`${session.date}T12:00`).getDate()}</strong><span>{new Intl.DateTimeFormat('en-US', { month: 'short' }).format(new Date(`${session.date}T12:00`))}</span></div><div className="session-copy"><p>{session.routineName}<span className={session.orderKind === 'one-off' ? 'order-tag one-off' : 'order-tag'}>{session.orderKind === 'one-off' ? 'One-off order' : session.variationName ?? 'Order unknown'}</span></p><h2>{session.exercises.length} exercises</h2><span>{session.exercises.reduce((n, e) => n + e.sets.length, 0)} working sets · Session {sessions.length - index}</span></div><div className="session-arrow"><NotePencil /><span>Edit</span></div></Pressable>)}</div>}</section>}
   </div>
 }
 
-function LineChart({ points, label, unit, onPointClick }: { points: { date: string; value: number; item: { session: Session } }[]; label: string; unit: string; onPointClick: (point: { date: string; value: number; item: { session: Session } }) => void }) {
+function LineChart({ points, label, unit, onPointClick }: { points: { date: string; value: number; item: { session: Session } }[]; label: string; unit: string; onPointClick?: (point: { date: string; value: number; item: { session: Session } }) => void }) {
   if (points.length < 2) return <div className="chart-space" />
   const width = 760, height = 280, padX = 42, padTop = 24, padBottom = 48
   const max = Math.max(...points.map(p => p.value)), min = Math.min(...points.map(p => p.value)), spread = max - min || 1
@@ -282,7 +278,7 @@ function LineChart({ points, label, unit, onPointClick }: { points: { date: stri
   const path = coords.map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ')
   const dateStep = Math.max(1, Math.ceil(points.length / 6))
   const formatAxisDate = (date: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`))
-  return <svg className="line-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${label} by workout date`}><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8b94a6" stopOpacity=".72"/><stop offset="1" stopColor="#8b94a6" stopOpacity="0"/></linearGradient></defs>{[0, .5, 1].map(ratio => { const y = padTop + ratio * (height - padTop - padBottom); const value = max - ratio * spread; return <g key={ratio}><line x1={padX} x2={width - padX} y1={y} y2={y} className="chart-gridline"/><text x={padX - 8} y={y + 3} textAnchor="end" className="chart-axis-value">{Math.round(value * 10) / 10}</text></g> })}<path d={`${path} L ${coords.at(-1)!.x} ${height-padBottom} L ${coords[0].x} ${height-padBottom} Z`} fill="url(#area)"/><motion.path d={path} fill="none" stroke="var(--mint)" strokeWidth="3" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: .65 }}/>{coords.map((point, index) => <g key={`${point.date}-${index}`} role="button" tabIndex={0} className="chart-point" onClick={() => onPointClick(point)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onPointClick(point) }}><title>{formatAxisDate(point.date)}: {Math.round(point.value * 10) / 10}{unit}. Open session.</title><circle cx={point.x} cy={point.y} r="14" fill="transparent"/><circle cx={point.x} cy={point.y} r="5" fill="var(--surface)" stroke="var(--mint)" strokeWidth="3"/>{(index % dateStep === 0 || index === coords.length - 1) && <text x={point.x} y={height - 17} textAnchor="middle" className="chart-date">{formatAxisDate(point.date)}</text>}</g>)}</svg>
+  return <svg className="line-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${label} by workout date`}><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8b94a6" stopOpacity=".72"/><stop offset="1" stopColor="#8b94a6" stopOpacity="0"/></linearGradient></defs>{[0, .5, 1].map(ratio => { const y = padTop + ratio * (height - padTop - padBottom); const value = max - ratio * spread; return <g key={ratio}><line x1={padX} x2={width - padX} y1={y} y2={y} className="chart-gridline"/><text x={padX - 8} y={y + 3} textAnchor="end" className="chart-axis-value">{Math.round(value * 10) / 10}</text></g> })}<path d={`${path} L ${coords.at(-1)!.x} ${height-padBottom} L ${coords[0].x} ${height-padBottom} Z`} fill="url(#area)"/><motion.path d={path} fill="none" stroke="var(--mint)" strokeWidth="3" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: .65 }}/>{coords.map((point, index) => <g key={`${point.date}-${index}`} role={onPointClick ? 'button' : undefined} tabIndex={onPointClick ? 0 : undefined} className={onPointClick ? 'chart-point' : 'chart-sample-point'} onClick={() => onPointClick?.(point)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onPointClick?.(point) }}><title>{formatAxisDate(point.date)}: {Math.round(point.value * 10) / 10}{unit}.{onPointClick ? ' Open session.' : ' Sample data.'}</title><circle cx={point.x} cy={point.y} r="14" fill="transparent"/><circle cx={point.x} cy={point.y} r="5" fill="var(--surface)" stroke="var(--mint)" strokeWidth="3"/>{(index % dateStep === 0 || index === coords.length - 1) && <text x={point.x} y={height - 17} textAnchor="middle" className="chart-date">{formatAxisDate(point.date)}</text>}</g>)}</svg>
 }
 
 function AccountSignIn({ cloud }: { cloud: CloudState }) {

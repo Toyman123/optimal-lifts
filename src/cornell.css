@@ -194,3 +194,17 @@ button:not(:disabled), a[href], summary { -webkit-tap-highlight-color: transpare
 .recent-copy > strong { font-size: 14px; font-weight: 550; }
 .recent-copy > small { color: #858c98; font-size: 11px; }
 .recent-row > svg { width: 15px; color: #929aa8; }
+.home-date { color: #858d9a; font-size: 12px; white-space: nowrap; }
+.coach-panel { min-height: 0; border: 0; border-radius: 0; background: transparent; overflow: visible; margin: 0; max-width: none; }
+.coach-panel > h2 { font-size: 22px; font-weight: 600; letter-spacing: -.5px; margin-bottom: 10px; }
+.coach-context { color: #87909e; font-size: 12px; line-height: 1.7; margin-bottom: 14px; }
+.coach-panel .coach-feed { padding: 0; margin: 20px 0; }
+.coach-panel .coach-input { margin: 0; padding: 12px; border: 1px solid #e1e5eb; border-radius: 20px; background: #fafbfc; gap: 10px; }
+.coach-panel .coach-input textarea { font-size: 13px; min-height: 66px; padding: 8px; background: transparent; border: 0; }
+.coach-panel .coach-input button { border-radius: 50%; width: 38px; height: 38px; background: #252a33; }
+.coach-panel .chat-bubble { border-radius: 16px; }
+.coach-panel .coach-error { border-radius: 12px; margin-bottom: 14px; }
+.workout-coach { margin-top: 36px; padding-top: 28px; border-top: 1px solid #dfe3ea; }
+.history-source { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin: -8px 3px 21px; }
+.history-source > span { font-size: 10px; color: #8992a0; }
+.history-source > button { font-size: 11px; color: #485361; text-decoration: underline; text-underline-offset: 3px; padding: 8px 0; }
