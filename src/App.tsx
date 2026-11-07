@@ -29,10 +29,10 @@ const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)
 const formatDate = (date: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${date}T12:00:00`))
 
 const routeMotion = {
-  initial: { opacity: 0, y: 9 },
+  initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -6 },
-  transition: { duration: .2, ease: [0.22, 1, 0.36, 1] as const },
+  exit: { opacity: 0, y: -4 },
+  transition: { duration: .26, ease: [0.22, 1, 0.36, 1] as const },
 } as const
 
 function DumbbellMark({ size = 32 }: { size?: number }) {
@@ -56,6 +56,7 @@ function Pressable({ children, className = '', onClick, type = 'button', disable
 }
 
 function TrainingApp() {
+  const reduced = useReducedMotion()
   const [data, setData] = useState<AppData>(() => loadData())
   const cloud = useCloudSync(data, setData)
   const [view, setView] = useState<View>('home')
@@ -112,7 +113,7 @@ function TrainingApp() {
     <main id="main-content" className="main-stage">
       <div className="mobile-topbar"><a className="brand-lockup" href="/" aria-label="Optimal Lifts home"><DumbbellMark size={28} /><span>OptimalLifts</span></a></div>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={view} {...routeMotion} className="route">
+        <motion.div key={view} {...(reduced ? { initial: false as const, animate: { opacity: 1 }, exit: { opacity: 1 }, transition: { duration: 0 } } : routeMotion)} className="route">
           {view === 'home' && <Dashboard data={data} startWorkout={startWorkout} navigate={navigate} displayName={cloud.displayName?.split(" ")[0]} />}
           {view === 'workouts' && <Workouts data={data} setData={setData} startWorkout={startWorkout} toast={toast} navigate={navigate} />}
           {view === 'log' && data.draft && <WorkoutLogger key={workoutKey(data.draft)} data={data} setData={setData} clock={clock} onBack={() => navigate('workouts')} onFinish={() => navigate('progress')} toast={toast} coach={<CoachPanel sessions={data.sessions} embedded />} />}
@@ -280,7 +281,7 @@ function LineChart({ points, label, unit, onPointClick }: { points: { date: stri
   const path = coords.map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ')
   const dateStep = Math.max(1, Math.ceil(points.length / 6))
   const formatAxisDate = (date: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`))
-  return <svg className="line-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${label} by workout date`}><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8b94a6" stopOpacity=".72"/><stop offset="1" stopColor="#8b94a6" stopOpacity="0"/></linearGradient></defs>{[0, .5, 1].map(ratio => { const y = padTop + ratio * (height - padTop - padBottom); const value = max - ratio * spread; return <g key={ratio}><line x1={padX} x2={width - padX} y1={y} y2={y} className="chart-gridline"/><text x={padX - 8} y={y + 3} textAnchor="end" className="chart-axis-value">{Math.round(value * 10) / 10}</text></g> })}<path d={`${path} L ${coords.at(-1)!.x} ${height-padBottom} L ${coords[0].x} ${height-padBottom} Z`} fill="url(#area)"/><motion.path d={path} fill="none" stroke="var(--mint)" strokeWidth="3" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: .65 }}/>{coords.map((point, index) => <g key={`${point.date}-${index}`} role={onPointClick ? 'button' : undefined} tabIndex={onPointClick ? 0 : undefined} className={onPointClick ? 'chart-point' : 'chart-sample-point'} onClick={() => onPointClick?.(point)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onPointClick?.(point) }}><title>{formatAxisDate(point.date)}: {Math.round(point.value * 10) / 10}{unit}.{onPointClick ? ' Open session.' : ' Sample data.'}</title><circle cx={point.x} cy={point.y} r="14" fill="transparent"/><circle cx={point.x} cy={point.y} r="5" fill="var(--surface)" stroke="var(--mint)" strokeWidth="3"/>{(index % dateStep === 0 || index === coords.length - 1) && <text x={point.x} y={height - 17} textAnchor="middle" className="chart-date">{formatAxisDate(point.date)}</text>}</g>)}</svg>
+  return <svg className="line-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${label} by workout date`}><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--chart-fill, #8b94a6)" stopOpacity=".72"/><stop offset="1" stopColor="var(--chart-fill, #8b94a6)" stopOpacity="0"/></linearGradient></defs>{[0, .5, 1].map(ratio => { const y = padTop + ratio * (height - padTop - padBottom); const value = max - ratio * spread; return <g key={ratio}><line x1={padX} x2={width - padX} y1={y} y2={y} className="chart-gridline"/><text x={padX - 8} y={y + 3} textAnchor="end" className="chart-axis-value">{Math.round(value * 10) / 10}</text></g> })}<path d={`${path} L ${coords.at(-1)!.x} ${height-padBottom} L ${coords[0].x} ${height-padBottom} Z`} fill="url(#area)"/><motion.path d={path} fill="none" stroke="var(--mint)" strokeWidth="3" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: .65 }}/>{coords.map((point, index) => <g key={`${point.date}-${index}`} role={onPointClick ? 'button' : undefined} tabIndex={onPointClick ? 0 : undefined} className={onPointClick ? 'chart-point' : 'chart-sample-point'} onClick={() => onPointClick?.(point)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onPointClick?.(point) }}><title>{formatAxisDate(point.date)}: {Math.round(point.value * 10) / 10}{unit}.{onPointClick ? ' Open session.' : ' Sample data.'}</title><circle cx={point.x} cy={point.y} r="14" fill="transparent"/><circle cx={point.x} cy={point.y} r="5" fill="var(--surface)" stroke="var(--mint)" strokeWidth="3"/>{(index % dateStep === 0 || index === coords.length - 1) && <text x={point.x} y={height - 17} textAnchor="middle" className="chart-date">{formatAxisDate(point.date)}</text>}</g>)}</svg>
 }
 
 function AccountSignIn({ cloud }: { cloud: CloudState }) {

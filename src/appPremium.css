@@ -1,0 +1,152 @@
+/* Whole-app counterpart to the premium homepage. Remove this import to restore the prior app skin. */
+body:has(.app-shell), body:has(.auth-gate) {
+  --canvas:#f7f9fc; --canvas-deep:#edf2fb; --surface:#fff; --surface-soft:#f3f6fb;
+  --ink:#111827; --muted:#77869c; --line:#e5eaf3; --mint:#1e2a78;
+  --forest:#111827; --forest-2:#1e2a78; --lime:#1e2a78; --lime-soft:#eaf0fd;
+  --chart-fill:#afcbff; --shadow:0 15px 40px #2039750c;
+  background:var(--canvas); color:var(--ink);
+}
+.app-shell, .auth-gate { color:var(--ink); background:var(--canvas); }
+.app-shell .page { padding-top:42px; }
+.app-shell .eyebrow { color:#7e91af; font-size:9px; letter-spacing:.11em; font-weight:550; }
+.app-shell .page-header h1, .app-shell .dashboard-heading h1 { color:#111827; font-weight:670; letter-spacing:-1.15px; }
+.app-shell .brand-lockup, .auth-gate .brand-lockup { color:#111827; }
+.app-shell .brand-lockup > svg, .auth-gate .brand-lockup > svg { color:#1e2a78; }
+.app-shell button, .auth-gate button, .app-shell input, .app-shell select, .app-shell textarea { transition:background .18s,box-shadow .18s,border-color .18s,color .18s,scale .12s; }
+.app-shell :focus-visible, .auth-gate :focus-visible { outline:2px solid #7195da; outline-offset:4px; }
+.app-shell .primary-button, .app-shell .round-button, .auth-gate .primary-button { background:#1e2a78; color:#fff; border-radius:12px; box-shadow:0 5px 14px #1e2a7817,inset 0 1px 0 #ffffff14; }
+.app-shell .page .primary-button { border-radius:12px; }
+.app-shell .primary-button:hover:not(:disabled), .app-shell .round-button:hover:not(:disabled), .auth-gate .primary-button:hover:not(:disabled) { background:#2b3b90; box-shadow:0 8px 20px #1e2a7823; }
+.app-shell .page .secondary-button, .app-shell .secondary-button, .auth-gate .secondary-button { background:#f3f6fb; border:1px solid #e5eaf3; border-radius:11px; color:#5b7297; }
+.app-shell .page .secondary-button:hover:not(:disabled), .auth-gate .secondary-button:hover:not(:disabled) { background:#eaf0fc; border-color:#d6e2f8; }
+.app-shell .icon-button, .app-shell .back-button { border-radius:11px; background:#eef3fc; color:#58739d; border-color:transparent; }
+.app-shell .text-link, .app-shell .history-source button, .auth-gate a { color:#5576ae; }
+.app-shell .home-date, .app-shell .save-status { color:#8a9bb4; }
+.app-shell .mobile-topbar { background:#f7f9fc; }
+.app-shell .routine-tabs, .app-shell .segmented { background:#eaf0f9; border:1px solid #e4ebf7; border-radius:25px; }
+.app-shell .routine-tabs > button { color:#8091ac; }
+.app-shell .routine-tabs > button[aria-pressed=true] { color:#1e2a78; }
+.app-shell .routine-tab-highlight { background:white; box-shadow:0 3px 11px #20397509,0 1px 2px #20397506; }
+.app-shell .routine-tabs > button:hover { color:#345c9d; }
+.app-shell .training-focus { background:linear-gradient(125deg,#fff,#f5f8fe); border:1px solid #e5eaf3; box-shadow:0 10px 35px #20397505; border-radius:26px; }
+.app-shell .training-focus h2 { color:#1e2a78; letter-spacing:-3px; }
+.app-shell .focus-status, .app-shell .focus-last { color:#8293ad; }
+.app-shell .focus-status i, .app-shell .routine-status i { background:#7c9edb; box-shadow:0 0 0 4px #afcbff24; }
+.app-shell .launch-circle { color:#dce7ff; background:#1e2a78; box-shadow:0 7px 18px #1e2a7823; }
+.app-shell .session-launch:hover .launch-circle { background:#2e4195; box-shadow:0 10px 24px #1e2a7830; }
+.app-shell .session-launch > span:first-child { color:#6a80a4; }
+.app-shell .routine-row { border-color:#e5eaf3; background:#fff; box-shadow:0 3px 15px #20397503; }
+.app-shell .routine-row:hover, .app-shell .routine-row:focus-within { border-color:#cddcf5; box-shadow:0 8px 25px #20397509; }
+.app-shell .routine-name { color:#21365a; }
+.app-shell .routine-index, .app-shell .routine-status { color:#8f9fb5; }
+.app-shell .routine-arrow { color:#6b88b5; background:#eef3fd; }
+.app-shell .routine-open:hover .routine-arrow { color:#dce7ff; background:#1e2a78; }
+.app-shell .routine-menu > summary { color:#9aabc4; }
+.app-shell .routine-menu > summary:hover, .app-shell .routine-menu[open] > summary { background:#edf3fe; color:#456aa6; }
+.app-shell .routine-menu > div { border-color:#e5eaf3; border-radius:16px; box-shadow:0 14px 35px #20397513; }
+.app-shell .routine-menu button { color:#6680a6; }
+.app-shell .routine-menu button:hover:not(:disabled) { background:#f0f5fd; }
+.app-shell .add-routine-drawer > summary { color:#657fa7; background:#edf2fc; border:1px solid #e1e9f7; }
+.app-shell .add-routine-drawer > summary:hover { color:#1e2a78; background:#e3ecff; }
+.app-shell .archive-drawer { border-color:#e5eaf3; color:#90a0b6; }
+.app-shell .inline-create, .app-shell .settings-group, .app-shell .chart-card, .app-shell .workout-notes, .app-shell .exercise-log, .app-shell .manual-rest, .app-shell .training-summary, .app-shell .session-card { border:1px solid #e5eaf3; border-radius:20px; background:#fff; box-shadow:0 6px 22px #20397504; }
+.app-shell input, .app-shell select, .app-shell textarea, .auth-gate input { border-color:#e5eaf3; border-radius:10px; background:#f3f6fb; color:#405575; }
+.app-shell input::placeholder, .app-shell textarea::placeholder, .auth-gate input::placeholder { color:#9aaac1; }
+.app-shell input:focus, .app-shell select:focus, .app-shell textarea:focus, .auth-gate input:focus { border-color:#afcbff; box-shadow:0 0 0 3px #afcbff25; }
+.app-shell .workout-notes > textarea { color:#405575; background:#f3f6fb; border:1px solid #edf1f8; border-radius:12px; }
+.app-shell .workout-notes > label, .app-shell .exercise-log h2 { color:#273d61; }
+.app-shell .workout-notes > p, .app-shell .workout-notes > footer > span { color:#8698b2; }
+.app-shell .entry-switch button.active, .app-shell .segmented button.active { background:#fff; color:#1e2a78; box-shadow:0 2px 8px #20397509; }
+.app-shell .manual-rest > div { color:#49658f; }
+.app-shell .manual-rest select, .app-shell .training-toolbar input, .app-shell .training-toolbar select { background:#f3f6fb; color:#7087a9; border-radius:8px; }
+.app-shell .exercise-symbol, .app-shell .settings-icon, .app-shell .coach-mark { background:#edf3ff; color:#7293c7; border-radius:11px; }
+.app-shell .log-set-row input { color:#38557e; background:#f3f6fb; }
+.app-shell .log-set-row.is-complete input { color:#4d6c9d; background:#edf3fd; }
+.app-shell .set-check > span { border-color:#ccd9ed; border-radius:5px; }
+.app-shell .set-check[aria-pressed=true] svg { background:#1e2a78; color:white; }
+.app-shell .rest-dock, .app-shell .workout-dock { color:white; background:linear-gradient(115deg,#1e2a78,#293a8a); border:1px solid #42539a; border-radius:17px; box-shadow:0 10px 28px #1e2a7827; }
+.app-shell .rest-label > span { color:#b5c8ee; }
+.app-shell .rest-label strong { color:#fff; font-weight:500; }
+.app-shell .rest-actions button { background:#ffffff0c; border:1px solid #afcbff26; color:#dce7ff; border-radius:10px; }
+.app-shell .rest-actions button:hover { background:#ffffff20; }
+.app-shell .rest-dock.complete { background:#e1ebff; border-color:#c8dafa; }
+.app-shell .rest-dock.complete .rest-label, .app-shell .rest-dock.complete .rest-label > span, .app-shell .rest-dock.complete .rest-label strong, .app-shell .rest-dock.complete .rest-actions button { color:#2b4b86; }
+.app-shell .rest-dock.complete .rest-actions button { background:#ffffff60; border-color:#b8cef1; }
+.app-shell .dock-art { background:#45599e; color:#d7e6ff; border:1px solid #afcbff30; }
+.app-shell .dock-play { color:#1e2a78; background:#dce7ff; }
+.app-shell .workout-dock small { color:#b8caef; }
+.app-shell .progress-toolbar .choice-button { background:white; border:1px solid #e5eaf3; border-radius:12px; color:#46648e; }
+.app-shell .progress-toolbar select { color:#8498b6; background:transparent; }
+.app-shell .progress-order > summary, .app-shell .progress-order > summary > span { color:#879ab7; }
+.app-shell .progress-page .metric-switch > button { color:#8c9fba; }
+.app-shell .progress-page .metric-switch > button.active { background:#1e2a78; color:#e7efff; box-shadow:0 4px 12px #1e2a781b; }
+.app-shell .progress-page .metric-switch > button:hover:not(:disabled):not(.active) { background:#e9f0fe; }
+.app-shell .progress-page .chart-card { border-radius:23px; }
+.app-shell .progress-page .chart-title strong { color:#243c68; font-weight:550; }
+.app-shell .chart-title p, .app-shell .chart-context, .app-shell .metric-help, .app-shell .line-chart text { color:#8498b6; fill:#8498b6; }
+.app-shell .chart-gridline { stroke:#edf1f8; }
+.app-shell .chart-point:focus circle { stroke:#7195da; }
+.app-shell .history-source > span { color:#92a3bd; }
+.app-shell .progress-page .stat-triplet > article { border-right-color:#e0e8f5; }
+.app-shell .progress-page .stat-triplet strong { color:#476591; }
+.app-shell .order-tag, .app-shell .count-badge { background:#eff4fd; color:#6a87b4; border-color:#e1eaf9; }
+.app-shell .coach-panel { background:transparent; border:0; box-shadow:none; }
+.app-shell .coach-panel > h2 { color:#263c63; }
+.app-shell .coach-context { color:#879bb7; }
+.app-shell .coach-panel .coach-input { background:white; border:1px solid #e1e9f5; border-radius:18px; box-shadow:0 5px 20px #20397504; }
+.app-shell .coach-panel .coach-input textarea { background:transparent; }
+.app-shell .coach-panel .coach-input button { color:#dce7ff; background:#1e2a78; border-radius:50%; }
+.app-shell .chat-bubble.user { background:#e1ebff; color:#314f82; }
+.app-shell .chat-bubble.coach { background:#fff; color:#405575; border:1px solid #e5eaf3; }
+.app-shell .workout-coach { border-top-color:#e5eaf3; }
+.app-shell .cloud-account, .app-shell .settings-row { border-top-color:#edf1f8; }
+.app-shell .settings-title h2, .app-shell .settings-row strong, .app-shell .cloud-account strong { color:#334e78; }
+.app-shell .status-pill, .app-shell .disclosure { color:#5979ac; background:#eff4fe; }
+.app-shell .sheet { background:#fff; border:1px solid #e5eaf3; border-radius:24px 24px 0 0; box-shadow:0 -12px 55px #2039750b; }
+.app-shell .sheet-scrim { background:#17244845; backdrop-filter:blur(6px); }
+.app-shell .sheet-handle { background:#dce7f8; }
+.app-shell .sheet > header { border-color:#edf1f8; }
+.app-shell .choice-button, .app-shell .choice-option { background:#f3f6fb; border-color:#e4ebf7; border-radius:12px; color:#617da5; }
+.app-shell .choice-option.selected { background:#edf3ff; border-color:#afcbff; color:#1e2a78; }
+.app-shell .toast { background:#1e2a78; color:white; box-shadow:0 10px 28px #1e2a7824; border-radius:14px; }
+.app-shell .bottom-nav { background:#ffffffed; border:1px solid #e5eaf3; border-radius:16px; box-shadow:0 8px 30px #2039750e; }
+.app-shell .bottom-nav .nav-item { color:#8b9fbe; }
+.app-shell .bottom-nav .nav-item.active { color:#1e2a78; }
+.app-shell .bottom-nav .nav-icon { position:relative; isolation:isolate; }
+.app-shell .bottom-nav .nav-icon i { display:block; position:absolute; z-index:-1; inset:-5px -9px; background:#e7efff; border-radius:10px; }
+.auth-gate { background:radial-gradient(ellipse at 65% 10%,#e7efff70,transparent 65%),#f7f9fc; }
+.auth-gate .auth-card { background:#fff; border:1px solid #e5eaf3; border-radius:24px; box-shadow:0 18px 60px #20397509; }
+.auth-gate .account-form > p, .auth-gate .account-form label, .auth-gate .auth-loading { color:#7f94b2; }
+.auth-gate .disclosure { background:#f0f5fd; color:#607ca7; border-radius:14px; }
+@media(min-width:900px) {
+  .app-shell .desktop-rail { background:#fff; border-color:#e5eaf3; }
+  .app-shell .rail-nav .nav-item { color:#8499b9; border-radius:11px; }
+  .app-shell .rail-nav .nav-item.active { background:#edf3ff; color:#1e2a78; }
+  .app-shell .rail-nav .nav-item.active svg { color:#1e2a78; }
+  .app-shell .rail-nav .nav-item:hover:not(.active) { background:#f6f8fc; }
+  .app-shell .rail-footer { border-color:#e5eaf3; color:#5e7da9; }
+}
+@media(prefers-reduced-motion:no-preference) {
+  .app-shell .route .training-focus, .app-shell .route .routine-row, .app-shell .route .chart-card, .app-shell .route .settings-group, .app-shell .route .workout-notes, .app-shell .route .manual-rest, .app-shell .route .coach-input { animation:app-surface-enter .42s both; }
+  .app-shell .routine-row:nth-child(2), .app-shell .settings-group:nth-child(2), .app-shell .workout-notes { animation-delay:.07s; }
+  .app-shell .routine-row:nth-child(3), .app-shell .workout-coach .coach-input { animation-delay:.12s; }
+  .app-shell .routine-open:hover .routine-arrow, .app-shell .primary-button:hover:not(:disabled) { translate:0 -1px; }
+}
+@keyframes app-surface-enter { from { opacity:0; translate:0 8px; } to { opacity:1; translate:0 0; } }
+@media(max-width:700px) {
+  .app-shell .page { padding-top:23px; }
+  .app-shell .training-page { padding-top:18px; }
+  .app-shell .training-focus { padding:20px 20px 25px; }
+  .app-shell .training-focus h2 { font-size:59px; }
+  .app-shell .training-heading > .primary-button { padding-left:11px; padding-right:11px; border-radius:10px; }
+  .app-shell .manual-rest { border-radius:16px; }
+  .app-shell .workout-notes { border-radius:20px; }
+  .app-shell .progress-page .chart-card { border-radius:20px; }
+  .app-shell .exercise-log { border-radius:18px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .app-shell *, .auth-gate * { animation:none!important; }
+  .app-shell button, .auth-gate button, .app-shell input, .app-shell select, .app-shell textarea { transition:none; }
+}
+.app-shell .training-heading > .primary-button { margin-left:auto; }
+.app-shell .chart-title strong > small { margin-left:5px; letter-spacing:0; font-size:11px; color:#8498b6; }
