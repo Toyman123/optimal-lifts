@@ -4,6 +4,7 @@ import './styles.css'
 import './reference.css'
 import './cornell.css'
 import './landing.css'
+import './landingPremium.css'
 import App from './App'
 import { installPressFeedback } from './pressFeedback'
 

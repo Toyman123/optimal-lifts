@@ -7,7 +7,9 @@
     "dev": "tsx scripts/dev.mjs",
     "build": "tsc -b && vite build",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "homepage:classic": "node scripts/homepage-theme.mjs classic",
+    "homepage:premium": "node scripts/homepage-theme.mjs premium"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.5",
