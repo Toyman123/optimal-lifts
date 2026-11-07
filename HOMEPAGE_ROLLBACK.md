@@ -9,6 +9,8 @@ The previous homepage is preserved in `src/LandingClassic.tsx` and uses the unch
 
 The setting is one line in `src/homepageTheme.ts`. These commands change only that setting. They do not change the workout app, account data, timers, or backend.
 
-The Git tag `homepage-before-premium-2026-11-07` records the full source checkpoint before this redesign. Use the homepage switch for a homepage-only rollback so later app changes are preserved.
+The Git tag `homepage-before-blue-2026-11-07` records the full source checkpoint before this redesign. Use the homepage switch for a homepage-only rollback so later app changes are preserved.
 
 The animated feature cards are isolated demonstrations. They never save workouts or alter the real rest timer. Their loops pause when offscreen or when the browser tab is hidden. Reduced-motion users see still examples.
+
+The checkpoint includes the latest sign-in and automatic-rest update. Both homepage designs use account wording that matches that behavior.
