@@ -55,6 +55,7 @@ export function saveData(data: AppData) {
 export const getLocalDataUpdatedAt = () => localStorage.getItem(UPDATED_KEY)
 export const getCloudOwnerId = () => localStorage.getItem(CLOUD_OWNER_KEY)
 export const setCloudOwnerId = (userId: string) => localStorage.setItem(CLOUD_OWNER_KEY, userId)
+export const clearCloudOwnerId = () => localStorage.removeItem(CLOUD_OWNER_KEY)
 
 export function clearData() {
   localStorage.removeItem(KEY)

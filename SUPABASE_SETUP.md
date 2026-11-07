@@ -1,6 +1,8 @@
 # Supabase setup
 
-The app is local-first. It continues saving to the browser when Supabase is unavailable and automatically backs up changes after an authenticated user connects.
+Sign-in is required. Each user's workouts are stored in Supabase; the browser keeps only a working cache for the signed-in user, which is cleared on sign-out.
+
+If the project URL stops resolving, the free-tier project was paused and then deleted. Restore it or create a new project and repeat these steps.
 
 1. Create a Supabase project.
 2. Open **SQL Editor**, paste the contents of `supabase/migrations/001_user_workout_data.sql`, and run it once.

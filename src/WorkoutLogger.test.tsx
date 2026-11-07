@@ -81,15 +81,23 @@ describe('notes entry', () => {
     expect(latest.sessions[0].exercises[0].comment).toContain('felt strong')
     expect(latest.draft).toBeUndefined()
   })
-  it('starts rest explicitly from notes and does not restart it while typing or saving', () => {
+  it('starts rest the moment a set is typed in notes, and again for each new or re-entered set', () => {
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: 'Start rest' }))
-    const timerId = screen.getByLabelText('Timer id').textContent
-    expect(timerId).not.toBe('')
-    fireEvent.change(screen.getByLabelText('Workout notes'), { target: { value: 'Bench\n185x8' } })
+    const notes = screen.getByLabelText('Workout notes')
+    fireEvent.change(notes, { target: { value: 'Bench\n185x8' } })
+    const first = screen.getByLabelText('Timer id').textContent
+    expect(first).not.toBe('')
+    fireEvent.change(notes, { target: { value: 'Bench\n185x8\nfelt good' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save notes' }))
-    expect(screen.getByLabelText('Timer id').textContent).toBe(timerId)
-    expect(latest.sessions[0].exercises[0].sets[0].weight).toBe(185)
+    expect(screen.getByLabelText('Timer id').textContent).toBe(first)
+    fireEvent.change(notes, { target: { value: 'Bench\n185x8 185x6' } })
+    const second = screen.getByLabelText('Timer id').textContent
+    expect(second).not.toBe(first)
+    fireEvent.change(notes, { target: { value: 'Bench\n185x8 185x' } })
+    expect(screen.getByLabelText('Timer id').textContent).toBe(second)
+    fireEvent.change(notes, { target: { value: 'Bench\n185x8 185x7' } })
+    expect(screen.getByLabelText('Timer id').textContent).not.toBe(second)
+    expect(latest.draft?.note).toBe('Bench\n185x8 185x7')
   })
   it('keeps incomplete text in the draft without silently finishing or replacing it', () => {
     render(<Harness />)

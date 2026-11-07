@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
-  Archive, ArrowLeft, ArrowRight, ArrowUpRight, DotsThree, Barbell, CaretDown, ChartLineUp, Cloud,
+  Archive, ArrowLeft, ArrowRight, ArrowUpRight, DotsThree, Barbell, CaretDown, ChartLineUp,
   ChatCircleText, Check, DotsSixVertical, Gear, House, Info,
   NotePencil, Play, Plus, Repeat, Trash, UserCircle, WarningCircle, X,
 } from '@phosphor-icons/react'
@@ -101,11 +101,13 @@ function TrainingApp() {
     openWorkout(id)
   }
 
+  if (!cloud.configured || !cloud.authReady || !cloud.email || !cloud.hydrated) return <AuthGate cloud={cloud} />
+
   return <div className="app-shell">
     <aside className="desktop-rail">
       <a className="brand-lockup" href="/" aria-label="Optimal Lifts home"><DumbbellMark /><span>OptimalLifts</span></a>
       <Navigation view={view} navigate={navigate} vertical />
-      <button className="rail-footer" onClick={() => navigate('settings')}><UserCircle size={32} weight="duotone" /><span><strong>{cloud.displayName ?? "Your profile"}</strong><small>{cloud.email ?? "Local account"}</small></span></button>
+      <button className="rail-footer" onClick={() => navigate('settings')}><UserCircle size={32} weight="duotone" /><span><strong>{cloud.displayName ?? "Your profile"}</strong><small>{cloud.email}</small></span></button>
     </aside>
     <main id="main-content" className="main-stage">
       <div className="mobile-topbar"><a className="brand-lockup" href="/" aria-label="Optimal Lifts home"><DumbbellMark size={28} /><span>OptimalLifts</span></a></div>
@@ -295,13 +297,24 @@ function AccountSignIn({ cloud }: { cloud: CloudState }) {
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Sign-in failed. Try again.') }
     finally { setBusy(false) }
   }
-  return <form className="account-form" onSubmit={event => { event.preventDefault(); void authenticate() }}><p>Sign in to back up your workouts and use AI Coach.</p><label>Email<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label><label>Password<input type="password" minLength={6} autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>{message && <p role="status">{message}</p>}<div><button className="primary-button" disabled={busy}>{busy ? 'Connecting…' : 'Sign in'}</button><button type="button" className="secondary-button" disabled={busy || !email || password.length < 6} onClick={() => void authenticate(true)}>Create account</button>{cloud.googleEnabled && <button type="button" className="secondary-button" disabled={busy} onClick={() => void authenticate(false, true)}>Continue with Google</button>}</div></form>
+  return <form className="account-form" onSubmit={event => { event.preventDefault(); void authenticate() }}><p>Sign in to log your workouts. Everything saves to your account and follows you to every device.</p><label>Email<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label><label>Password<input type="password" minLength={6} autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>{message && <p role="status">{message}</p>}<div><button className="primary-button" disabled={busy}>{busy ? 'Connecting…' : 'Sign in'}</button><button type="button" className="secondary-button" disabled={busy || !email || password.length < 6} onClick={() => void authenticate(true)}>Create account</button>{cloud.googleEnabled && <button type="button" className="secondary-button" disabled={busy} onClick={() => void authenticate(false, true)}>Continue with Google</button>}</div></form>
+}
+
+function AuthGate({ cloud }: { cloud: CloudState }) {
+  const loading = cloud.configured && (!cloud.authReady || (cloud.email && !cloud.hydrated && cloud.status !== 'error'))
+  return <div className="auth-gate"><div className="auth-card panel">
+    <a className="brand-lockup" href="/" aria-label="Optimal Lifts home"><DumbbellMark size={28} /><span>OptimalLifts</span></a>
+    {!cloud.configured ? <div className="disclosure"><Info weight="fill" /><div><strong>Sign-in isn’t configured</strong><p>Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to the environment, then redeploy.</p></div></div>
+      : loading ? <p role="status" className="auth-loading">{cloud.email ? 'Loading your workouts…' : 'Connecting…'}</p>
+      : cloud.email ? <div className="auth-error"><p role="alert" className="cloud-message error">{cloud.message ?? 'Could not load your workouts.'}</p><div className="sheet-footer"><Pressable className="secondary-button" onClick={() => cloud.signOut()}>Sign out</Pressable><Pressable className="primary-button" onClick={cloud.retry}>Try again</Pressable></div></div>
+      : <>{cloud.status === 'error' && cloud.message && <p role="alert" className="cloud-message error">{cloud.message}</p>}<AccountSignIn cloud={cloud} /></>}
+  </div></div>
 }
 
 function Settings({ data, setData, toast, cloud }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>>; toast: (s: string) => void; cloud: CloudState }) {
   const [confirming, setConfirming] = useState<'routines' | 'all' | null>(null)
   return <div className="page"><PageHeader eyebrow="Your app" title="Profile & Settings" />
-    <section className="settings-group"><div className="settings-title"><h2>Cloud backup</h2><p>Keep the complete workout record available across your signed-in devices.</p></div>{!cloud.configured ? <div className="disclosure"><Info weight="fill" /><div><strong>Supabase setup needed</strong><p>Add the project URL and publishable key to the Vercel environment, then run the included database migration.</p></div></div> : cloud.email ? <><div className="cloud-account"><span className="settings-icon"><Cloud weight="fill" /></span><div><strong>{cloud.email}</strong><small>{cloud.status === 'synced' ? 'Everything is backed up' : cloud.status === 'syncing' ? 'Saving changes…' : cloud.status === 'error' ? 'Sync needs attention' : 'Device copy available'}</small></div><span className={`status-pill ${cloud.status === 'error' ? 'error' : ''}`}>{cloud.status}</span></div>{cloud.message && <p className={cloud.status === 'error' ? 'cloud-message error' : 'cloud-message'}>{cloud.message}</p>}<Pressable className="settings-row" onClick={() => cloud.syncNow()}><span className="settings-icon"><Repeat /></span><div><strong>Sync now</strong><small>Send this device’s latest data to Supabase</small></div><ArrowRight /></Pressable><Pressable className="settings-row" onClick={() => cloud.signOut()}><span className="settings-icon"><ArrowLeft /></span><div><strong>Sign out</strong><small>Your local device copy remains available</small></div><ArrowRight /></Pressable></> : <AccountSignIn cloud={cloud} />}</section>
+    <section className="settings-group"><div className="settings-title"><h2>Account</h2><p>Your workouts save to this account automatically.</p></div><div className="cloud-account"><span className="settings-icon"><UserCircle weight="fill" /></span><div><strong>{cloud.email}</strong><small>{cloud.status === 'error' ? 'Changes not saved yet' : cloud.status === 'syncing' ? 'Saving…' : 'All changes saved'}</small></div></div>{cloud.status === 'error' && cloud.message && <><p role="alert" className="cloud-message error">{cloud.message}</p><Pressable className="settings-row" onClick={cloud.retry}><span className="settings-icon"><Repeat /></span><div><strong>Try again</strong><small>Reconnect to your account</small></div><ArrowRight /></Pressable></>}<Pressable className="settings-row" onClick={() => cloud.signOut()}><span className="settings-icon"><ArrowLeft /></span><div><strong>Sign out</strong><small>Removes your workouts from this device</small></div><ArrowRight /></Pressable></section>
     <section className="settings-group danger-zone"><div className="settings-title"><h2>Reset</h2><p>These actions require confirmation and cannot be undone.</p></div><button className="settings-row danger" onClick={() => setConfirming('routines')}><span className="settings-icon"><Repeat /></span><div><strong>Reset routines</strong><small>History remains untouched</small></div><ArrowRight /></button><button className="settings-row danger" onClick={() => setConfirming('all')}><span className="settings-icon"><Trash /></span><div><strong>Clear all data</strong><small>Routines, sessions, and drafts</small></div><ArrowRight /></button></section>
     <AnimatePresence>{confirming && <Sheet title={confirming === 'all' ? 'Clear all data?' : 'Reset routines?'} onClose={() => setConfirming(null)}><div className="confirm-copy"><WarningCircle weight="fill" /><p>{confirming === 'all' ? 'Every saved session and unfinished draft will be removed from this account and device.' : 'Your workout lists will return to the starter setup. Saved session history will remain unchanged.'}</p></div><div className="sheet-footer"><Pressable className="secondary-button" onClick={() => setConfirming(null)}>Cancel</Pressable><Pressable className="danger-button" onClick={() => { if (confirming === 'all') { clearData(); setData(createSeedData()) } else setData(d => ({ ...d, routines: createSeedData().routines, draft: undefined })); setConfirming(null); toast(confirming === 'all' ? 'All data cleared' : 'Routines reset') }}>{confirming === 'all' ? 'Clear everything' : 'Reset routines'}</Pressable></div></Sheet>}</AnimatePresence>
   </div>

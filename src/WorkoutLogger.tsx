@@ -3,6 +3,7 @@ import { ArrowLeft, Barbell, Check, ClockCountdown, Pause, Play, Plus, Trash } f
 import { GeminiWorkoutEntry } from './GeminiWorkoutEntry'
 import { parseWorkoutNote } from './parser'
 import { formatClock, workoutKey, type WorkoutClock } from './useRestTimer'
+import { newlyLoggedExerciseIds } from './timer'
 import type { AppData, Draft, Routine, Session, WorkoutRow } from './types'
 
 const uid = () => crypto.randomUUID()
@@ -45,9 +46,15 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast, c
   const previous = (id: string) => [...data.sessions].filter(s => s.id !== sessionId.current && s.routineId === routine.id).sort((a, b) => b.date.localeCompare(a.date) || b.savedAt.localeCompare(a.savedAt)).find(s => s.exercises.some(e => e.exerciseId === id))
   const restFor = (id: string) => data.restSeconds?.[id] ?? 120
   const [restExerciseId, setRestExerciseId] = useState(() => exercises[0]?.id ?? '')
+  const setCounts = (parsed: ReturnType<typeof parseWorkoutNote>) => Object.fromEntries(parsed.exercises.map(item => [item.exercise.id, item.sets.length]))
   const changeNotes = (note: string) => {
     setNotesText(note); setError('')
+    const before = setCounts(initialParsed.current)
     initialParsed.current = parseWorkoutNote(note, routine.exercises)
+    // Start rest the moment a set is written (new or re-entered).
+    const logged = newlyLoggedExerciseIds(setCounts(initialParsed.current), before)
+    const newest = [...initialParsed.current.exercises].reverse().find(item => logged.includes(item.exercise.id))
+    if (newest) clock.start(key, newest.exercise.id, newest.exercise.name, restFor(newest.exercise.id))
     const next = hydrateRows({ ...draft, rows: undefined, note }, routine)
     rowsRef.current = next; setRows(next)
     const noteOrder = initialParsed.current.exercises.map(item => item.exercise.id)
@@ -95,10 +102,10 @@ export function WorkoutLogger({ data, setData, clock, onBack, onFinish, toast, c
     toast('Workout finished. Every set saved.'); onFinish()
   }
   return <div className="page training-page">
-    <div className="training-top"><button className="back-button" onClick={onBack}><ArrowLeft /> Workouts</button><span className="save-status"><i /> Saved on this device</span></div>
+    <div className="training-top"><button className="back-button" onClick={onBack}><ArrowLeft /> Workouts</button><span className="save-status"><i /> Saved to your account</span></div>
     <header className="training-heading"><div><p className="eyebrow">Workout in progress</p><h1>{routine.name}</h1></div><button className="primary-button" disabled={!completed} onClick={() => finish()}>Finish workout <Check /></button></header>
     <div className="training-toolbar"><label>Date <input aria-label="Workout date" type="date" value={draft.date} onChange={e => commit(rowsRef.current, { date: e.target.value })} /></label><label>Order <select aria-label="Workout order" value={draft.variationId ?? ''} onChange={e => { const variation = routine.variations.find(v => v.id === e.target.value); if (variation) commit(rowsRef.current, { variationId: variation.id, order: variation.exerciseIds }) }}>{routine.variations.filter(v => !v.archived).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>{entryMode === 'sets' && <button className="text-link" onClick={() => setRestSettings(!restSettings)}><ClockCountdown /> Rest settings</button>}</div>
-    {restSettings && <section className="rest-settings panel"><h2>Rest between sets</h2><p>Starts when you mark a set complete. Editing a completed set won’t restart it.</p><button className="secondary-button" onClick={() => void clock.enableAlerts()}>{clock.alerts ? 'Turn alerts off' : 'Enable sound & vibration'}</button><p>Alerts work while the browser can run. If your phone suspends the app, the countdown catches up when you return.</p>{exercises.map(e => <label key={e.id}>{e.name}<select aria-label={`Rest for ${e.name}`} value={restFor(e.id)} onChange={event => setData(current => ({ ...current, restSeconds: { ...current.restSeconds, [e.id]: Number(event.target.value) } }))}>{[...new Set([30, 60, 90, 120, 150, 180, 240, 300, restFor(e.id)])].sort((a, b) => a - b).map(n => <option key={n} value={n}>{formatClock(n)}</option>)}</select></label>)}</section>}
+    {restSettings && <section className="rest-settings panel"><h2>Rest between sets</h2><p>Starts as soon as you log a set.</p><button className="secondary-button" onClick={() => void clock.enableAlerts()}>{clock.alerts ? 'Turn alerts off' : 'Enable sound & vibration'}</button><p>Alerts work while the browser can run. If your phone suspends the app, the countdown catches up when you return.</p>{exercises.map(e => <label key={e.id}>{e.name}<select aria-label={`Rest for ${e.name}`} value={restFor(e.id)} onChange={event => setData(current => ({ ...current, restSeconds: { ...current.restSeconds, [e.id]: Number(event.target.value) } }))}>{[...new Set([30, 60, 90, 120, 150, 180, 240, 300, restFor(e.id)])].sort((a, b) => a - b).map(n => <option key={n} value={n}>{formatClock(n)}</option>)}</select></label>)}</section>}
     {error && <p className="form-error" role="alert">{error}</p>}
     <div className="entry-switch segmented" aria-label="Workout entry"><button className={entryMode === 'notes' ? 'active' : ''} aria-pressed={entryMode === 'notes'} onClick={() => switchEntry('notes')}>Notes</button><button className={entryMode === 'sets' ? 'active' : ''} aria-pressed={entryMode === 'sets'} onClick={() => switchEntry('sets')}>Set entry</button></div>
     <section className="manual-rest panel" aria-label="Rest timer controls"><div><ClockCountdown size={21} /><strong>Rest timer</strong></div><label><span className="sr-only">Rest exercise</span><select aria-label="Rest exercise" value={restExerciseId} onChange={event => setRestExerciseId(event.target.value)}>{exercises.map(exercise => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}</select></label><select aria-label="Rest duration" value={restFor(restExerciseId)} onChange={event => setData(current => ({ ...current, restSeconds: { ...current.restSeconds, [restExerciseId]: Number(event.target.value) } }))}>{[...new Set([30, 60, 90, 120, 150, 180, 240, 300, restFor(restExerciseId)])].sort((a, b) => a - b).map(duration => <option key={duration} value={duration}>{formatClock(duration)}</option>)}</select><button className="primary-button" disabled={!restExerciseId} onClick={() => clock.start(key, restExerciseId, exercises.find(e => e.id === restExerciseId)?.name ?? routine.name, restFor(restExerciseId))}><Play weight="fill" />{clock.timer?.workoutKey === key ? 'Restart rest' : 'Start rest'}</button></section>

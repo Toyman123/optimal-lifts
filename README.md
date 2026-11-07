@@ -15,7 +15,7 @@ Machine Chest Press
 felt strong
 ```
 
-Workout data is saved locally in the browser. When you sign in, Supabase stores your workout data and syncs it across devices. Local logging remains available without a cloud connection.
+Sign-in is required. Supabase stores each user's workout data and syncs it across devices.
 
 ## Features
 
@@ -57,7 +57,7 @@ The repository includes a Vercel configuration and an `/api/coach` endpoint. Add
 
 ## Project status
 
-This is a personal project that I actively use. Supabase stores each signed-in user's workout document with row-level security. Browser storage keeps a local copy for use when offline or signed out. Cloud sync and AI coaching require their respective services to be configured.
+This is a personal project that I actively use. Supabase stores each signed-in user's workout document with row-level security. Cloud sync and AI coaching require their respective services to be configured.
 
 ## Timer behavior
 
