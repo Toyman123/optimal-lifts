@@ -1,7 +1,7 @@
 import { createClient, type Session as AuthSession } from '@supabase/supabase-js'
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { createSeedData } from './data'
-import { getCloudOwnerId, getLocalDataUpdatedAt, normalizeData, setCloudOwnerId } from './storage'
+import { clearCloudOwnerId, clearData, getCloudOwnerId, getLocalDataUpdatedAt, normalizeData, setCloudOwnerId } from './storage'
 import type { AppData } from './types'
 
 const projectUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
@@ -17,16 +17,26 @@ export async function getCloudAccessToken() {
 export type CloudState = {
   configured: boolean
   authReady: boolean
+  /** True once the signed-in user's account data has been loaded into the app. */
+  hydrated: boolean
   googleEnabled: boolean
   displayName?: string
   email?: string
-  status: 'local' | 'connecting' | 'syncing' | 'synced' | 'error'
+  status: 'signed-out' | 'connecting' | 'syncing' | 'synced' | 'error'
   message?: string
   signInWithPassword: (email: string, password: string) => Promise<void>
   signUpWithPassword: (email: string, password: string) => Promise<boolean>
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
-  syncNow: () => Promise<void>
+  retry: () => void
+}
+
+const OFFLINE = 'Can’t reach the Optimal Lifts server. Check your connection and try again.'
+export const friendlyCloudError = (error: unknown, fallback: string) => {
+  const message = error instanceof Error ? error.message : typeof error === 'object' && error && 'message' in error ? String((error as { message: unknown }).message) : ''
+  if (/failed to fetch|networkerror|load failed/i.test(message)) return OFFLINE
+  if (/relation .* does not exist|could not find the table/i.test(message)) return 'The account database isn’t set up yet (missing user_workout_data table).'
+  return message || fallback
 }
 
 async function readCloudData(userId: string) {
@@ -35,7 +45,7 @@ async function readCloudData(userId: string) {
   if (error) throw error
   if (!data) return null
   const normalized = normalizeData(data.data)
-  if (!normalized) throw new Error('Cloud workout data has an unsupported format.')
+  if (!normalized) throw new Error('Saved workout data has an unsupported format.')
   return { data: normalized, updatedAt: data.updated_at as string }
 }
 
@@ -48,19 +58,33 @@ async function writeCloudData(userId: string, data: AppData) {
 export function useCloudSync(data: AppData, setData: Dispatch<SetStateAction<AppData>>): CloudState {
   const [session, setSession] = useState<AuthSession | null>(null)
   const [authReady, setAuthReady] = useState(!supabase)
+  const [hydratedId, setHydratedId] = useState<string>()
+  const [attempt, setAttempt] = useState(0)
   const [googleEnabled, setGoogleEnabled] = useState(false)
-  const [status, setStatus] = useState<CloudState['status']>(supabase ? 'connecting' : 'local')
+  const [status, setStatus] = useState<CloudState['status']>(supabase ? 'connecting' : 'signed-out')
   const [message, setMessage] = useState<string>()
   const dataRef = useRef(data)
-  const hydratedUser = useRef<string | undefined>(undefined)
   const syncTimer = useRef<number | undefined>(undefined)
+  const dirty = useRef(false)
   dataRef.current = data
+  const userId = session?.user.id
+  const hydrated = Boolean(userId && hydratedId === userId)
 
   useEffect(() => {
     if (!supabase) return
-    supabase.auth.getSession().then(({ data: result }) => { setSession(result.session); setStatus(result.session ? 'connecting' : 'local'); setAuthReady(true) })
+    let cancelled = false
+    const timeout = window.setTimeout(() => {
+      if (!cancelled) { setAuthReady(true); setStatus('error'); setMessage(OFFLINE) }
+    }, 10000)
+    supabase.auth.getSession().then(({ data: result, error }) => {
+      if (cancelled) return
+      window.clearTimeout(timeout)
+      setSession(result.session); setStatus(error ? 'error' : result.session ? 'connecting' : 'signed-out'); setMessage(error ? friendlyCloudError(error, 'Could not restore your sign-in.') : undefined); setAuthReady(true)
+    }).catch(error => {
+      if (!cancelled) { window.clearTimeout(timeout); setAuthReady(true); setStatus('error'); setMessage(friendlyCloudError(error, 'Could not connect to your account.')) }
+    })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => { setSession(nextSession); setAuthReady(true) })
-    return () => listener.subscription.unsubscribe()
+    return () => { cancelled = true; window.clearTimeout(timeout); listener.subscription.unsubscribe() }
   }, [])
 
   useEffect(() => {
@@ -71,80 +95,100 @@ export function useCloudSync(data: AppData, setData: Dispatch<SetStateAction<App
       .catch(() => setGoogleEnabled(false))
   }, [])
 
+  // Load the account's data once per signed-in user before the app is shown.
   useEffect(() => {
-    const user = session?.user
-    if (!supabase || !user || hydratedUser.current === user.id) {
-      if (supabase && !user) setStatus('local')
-      return
-    }
+    if (!supabase || !userId) { if (supabase && authReady && !userId) setStatus('signed-out'); return }
+    if (hydratedId === userId) return
     let cancelled = false
     setStatus('syncing'); setMessage(undefined)
     ;(async () => {
       try {
-        const remote = await readCloudData(user.id)
+        const remote = await readCloudData(userId)
         if (cancelled) return
         const localOwner = getCloudOwnerId()
         const localUpdatedAt = getLocalDataUpdatedAt()
         if (!remote) {
-          const initial = localOwner && localOwner !== user.id ? createSeedData() : dataRef.current
+          // New account: keep this device's data only if it isn't another user's.
+          const initial = localOwner && localOwner !== userId ? createSeedData() : dataRef.current
+          await writeCloudData(userId, initial)
+          if (cancelled) return
           setData(initial)
-          await writeCloudData(user.id, initial)
-        } else if (localOwner === user.id && localUpdatedAt && localUpdatedAt > remote.updatedAt) {
-          await writeCloudData(user.id, dataRef.current)
+        } else if (localOwner === userId && localUpdatedAt && localUpdatedAt > remote.updatedAt) {
+          await writeCloudData(userId, dataRef.current)
         } else {
           setData(remote.data)
         }
-        setCloudOwnerId(user.id)
-        hydratedUser.current = user.id
-        if (!cancelled) setStatus('synced')
+        if (cancelled) return
+        setCloudOwnerId(userId)
+        dirty.current = false
+        setHydratedId(userId)
+        setStatus('synced')
       } catch (error) {
-        if (!cancelled) { setStatus('error'); setMessage(error instanceof Error ? error.message : 'Cloud sync failed.') }
+        if (!cancelled) { setStatus('error'); setMessage(friendlyCloudError(error, 'Could not load your workouts.')) }
       }
     })()
     return () => { cancelled = true }
-  }, [session?.user?.id, setData])
+  }, [userId, hydratedId, authReady, attempt, setData])
 
-  useEffect(() => {
-    const userId = session?.user.id
-    if (!supabase || !userId || hydratedUser.current !== userId) return
+  const flush = useCallback(async () => {
+    if (!userId || !dirty.current) return
     window.clearTimeout(syncTimer.current)
-    setStatus('syncing')
-    syncTimer.current = window.setTimeout(async () => {
-      try { await writeCloudData(userId, dataRef.current); setStatus('synced'); setMessage(undefined) }
-      catch (error) { setStatus('error'); setMessage(error instanceof Error ? error.message : 'Cloud sync failed.') }
-    }, 900)
+    try { setStatus('syncing'); await writeCloudData(userId, dataRef.current); dirty.current = false; setStatus('synced'); setMessage(undefined) }
+    catch (error) { setStatus('error'); setMessage(friendlyCloudError(error, 'Could not save your latest changes.')) }
+  }, [userId])
+
+  // Save every change to the account shortly after it happens.
+  const skipFirst = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (!hydrated || !userId) return
+    if (skipFirst.current !== userId) { skipFirst.current = userId; return }
+    dirty.current = true
+    window.clearTimeout(syncTimer.current)
+    syncTimer.current = window.setTimeout(() => { void flush() }, 900)
     return () => window.clearTimeout(syncTimer.current)
-  }, [data, session?.user.id])
+  }, [data, hydrated, userId, flush])
+
+  // Retry unsaved changes when the connection returns or the app is backgrounded.
+  useEffect(() => {
+    if (!hydrated) return
+    const onOnline = () => { void flush() }
+    const onHide = () => { if (document.visibilityState === 'hidden') void flush() }
+    window.addEventListener('online', onOnline)
+    document.addEventListener('visibilitychange', onHide)
+    return () => { window.removeEventListener('online', onOnline); document.removeEventListener('visibilitychange', onHide) }
+  }, [hydrated, flush])
 
   const signInWithPassword = async (email: string, password: string) => {
-    if (!supabase) throw new Error('Supabase is not configured.')
+    if (!supabase) throw new Error('Sign-in is not configured.')
     setStatus('connecting'); setMessage(undefined)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setStatus('error'); setMessage(error.message); throw error }
+    if (error) { setStatus('signed-out'); throw new Error(friendlyCloudError(error, 'Could not sign in.')) }
   }
   const signUpWithPassword = async (email: string, password: string) => {
-    if (!supabase) throw new Error('Supabase is not configured.')
+    if (!supabase) throw new Error('Sign-in is not configured.')
     setStatus('connecting'); setMessage(undefined)
     const { data: result, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } })
-    if (error) { setStatus('error'); setMessage(error.message); throw error }
+    if (error) { setStatus('signed-out'); throw new Error(friendlyCloudError(error, 'Could not create your account.')) }
     const needsConfirmation = !result.session
-    setStatus(needsConfirmation ? 'local' : 'connecting')
-    setMessage(needsConfirmation ? 'Check your email to confirm your account, then sign in.' : undefined)
+    setStatus(needsConfirmation ? 'signed-out' : 'connecting')
     return needsConfirmation
   }
   const signInWithGoogle = async () => {
-    if (!supabase) throw new Error('Supabase is not configured.')
+    if (!supabase) throw new Error('Sign-in is not configured.')
     setStatus('connecting'); setMessage(undefined)
     const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
-    if (error) { setStatus('error'); setMessage(error.message); throw error }
+    if (error) { setStatus('signed-out'); throw new Error(friendlyCloudError(error, 'Google sign-in failed.')) }
   }
-  const signOut = async () => { if (supabase) await supabase.auth.signOut(); hydratedUser.current = undefined; setSession(null); setStatus('local'); setMessage('Signed out. This device copy remains available.') }
-  const syncNow = async () => {
-    const userId = session?.user.id
-    if (!userId) return
-    try { setStatus('syncing'); await writeCloudData(userId, dataRef.current); setStatus('synced'); setMessage('Everything on this device is backed up.') }
-    catch (error) { setStatus('error'); setMessage(error instanceof Error ? error.message : 'Cloud sync failed.') }
+  const signOut = async () => {
+    let saved = true
+    if (dirty.current) { await flush(); saved = !dirty.current }
+    if (supabase) await supabase.auth.signOut()
+    // Leave nothing behind for the next person unless it failed to save.
+    if (saved) { clearData(); clearCloudOwnerId(); setData(createSeedData()) }
+    setHydratedId(undefined); setSession(null); setStatus('signed-out'); setMessage(undefined)
   }
+  const retry = () => { setMessage(undefined); setAttempt(n => n + 1) }
 
-  return { configured: Boolean(supabase), authReady, googleEnabled, displayName: session?.user.user_metadata?.full_name || session?.user.user_metadata?.name, email: session?.user.email, status, message, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut, syncNow }
+  const meta = session?.user.user_metadata
+  return { configured: Boolean(supabase), authReady, hydrated, googleEnabled, displayName: meta?.full_name || meta?.name, email: session?.user.email, status, message, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut, retry }
 }
