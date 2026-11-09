@@ -39,13 +39,11 @@ describe('workout app flows', () => {
     expect(window.location.hash).toBe('#settings')
   })
 
-  it('logs a set, saves once, finishes, and advances the rotation', async () => {
+  it('logs a set from the note, saves once, finishes, and advances the rotation', async () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: 'Start workout' }))
-    await screen.findByLabelText('Set weight')
-    fireEvent.change(screen.getByLabelText('Set weight'), { target: { value: '70' } })
-    fireEvent.change(screen.getByLabelText('Set reps'), { target: { value: '8' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add set' }))
+    const note = await screen.findByLabelText('Write it how you trained')
+    fireEvent.change(note, { target: { value: (note as HTMLTextAreaElement).value + '\nIncline Chest Press 70x8' } })
     await waitFor(() => expect(stored().sessions).toHaveLength(1), { timeout: 3000 })
     expect(stored().sessions[0].exercises[0].sets[0]).toMatchObject({ weight: 70, reps: 8 })
     fireEvent.click(screen.getByRole('button', { name: 'Finish workout' }))

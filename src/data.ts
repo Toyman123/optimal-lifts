@@ -3,7 +3,7 @@ import type { AppData, Session, SessionExercise } from './types'
 export const createSeedData = (): AppData => ({
   schemaVersion: 3,
   sampleDataVersion: 1,
-  startingDataVersion: 1,
+  startingDataVersion: 2,
   routines: [
     {
       id: 'push',
@@ -154,4 +154,93 @@ export function createStartingPointSessions(): Session[] {
       "Leg Extension 45x12 45x11\nRomanian Deadlift 115x12 135x8\nLeg Press 225x12 225x8 — first-set form wasn't great; perfect form on the second set with back on the pad",
     ),
   ]
+}
+
+/*
+ * Training history from the first logged week to early November, so progress charts
+ * start with a real arc. Key lifts follow explicit numbers ending at the current bests
+ * (incline 80x6, pec deck 140, lat pulldown 140x9, seated row 130x7, leg press 225).
+ * Accessory lifts climb gently from their September starting points.
+ */
+type Lift = [weight: number, reps: number]
+const HISTORY_START = '2026-09-20'
+const HISTORY_END = '2026-11-08'
+const REST_WEEKDAYS = new Set([0, 3]) // Sundays and Wednesdays off
+
+/** Training dates in rotation order: Push, Pull, Legs, repeat. */
+function historySchedule() {
+  const routines = ['push', 'pull', 'legs'] as const
+  const days: Array<{ date: string; routine: (typeof routines)[number] }> = []
+  const cursor = new Date(`${HISTORY_START}T12:00:00Z`)
+  const end = new Date(`${HISTORY_END}T12:00:00Z`)
+  for (let n = 0; cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    if (REST_WEEKDAYS.has(cursor.getUTCDay())) continue
+    days.push({ date: cursor.toISOString().slice(0, 10), routine: routines[n++ % 3] })
+  }
+  return days
+}
+
+/** Picks the i-th of n entries from an explicit progression, stretching it to fit. */
+const pick = <T,>(steps: T[], i: number, n: number) => steps[Math.min(steps.length - 1, Math.round((i / Math.max(1, n - 1)) * (steps.length - 1)))]
+
+/** Gentle linear climb for accessories: weight rounds to `step`, reps ease down as weight goes up. */
+function climb([w0, r0]: Lift, [w1, r1]: Lift, step: number, i: number, n: number): Lift[] {
+  const t = i / Math.max(1, n - 1)
+  const weight = Math.round((w0 + (w1 - w0) * t) / step) * step
+  const wobble = i > 0 && i < n - 1 && i % 2 ? -1 : 0
+  const reps = Math.round(r0 + (r1 - r0) * t + wobble)
+  return [[weight, reps], [weight, Math.max(5, reps - 2)]]
+}
+
+const KEY_LIFTS: Record<string, Lift[][]> = {
+  'incline-chest-press': [[[75, 9], [75, 7]], [[75, 10], [75, 7]], [[75, 10], [75, 8]], [[80, 5], [75, 8]], [[80, 5], [80, 4]], [[80, 5], [80, 5]], [[80, 6], [80, 4]], [[80, 5], [80, 5]], [[80, 6], [80, 5]], [[80, 6], [80, 6]]],
+  'pec-deck': [[[130, 12]], [[135, 9]], [[135, 10]], [[135, 11]], [[135, 12]], [[140, 7]], [[140, 8]], [[140, 8]], [[140, 9]], [[140, 9]]],
+  'lat-pulldown': [[[130, 11], [120, 10]], [[130, 12], [120, 10]], [[135, 8], [120, 11]], [[135, 9], [120, 11]], [[135, 10], [125, 10]], [[135, 11], [125, 10]], [[140, 7], [125, 11]], [[140, 8], [125, 11]], [[140, 8], [130, 10]], [[140, 9], [130, 10]]],
+  'seated-row': [[[130, 10], [130, 7]], [[130, 9], [130, 8]], [[130, 10], [130, 7]], [[130, 8], [130, 8]], [[130, 9], [130, 7]], [[130, 8], [130, 7]], [[130, 9], [130, 7]], [[130, 8], [130, 7]], [[130, 7], [130, 7]], [[130, 7], [130, 6]]],
+  'leg-press': [[[225, 10], [225, 9]], [[225, 11], [225, 9]], [[225, 11], [225, 10]], [[225, 12], [225, 10]], [[225, 12], [225, 10]], [[225, 12], [225, 11]], [[225, 12], [225, 11]], [[225, 12], [225, 12]]],
+}
+
+const ACCESSORIES: Record<string, { name: string; from: Lift; to: Lift; step: number; bodyweight?: boolean }> = {
+  'converging-chest-press': { name: 'Converging Chest Press', from: [110, 8], to: [120, 8], step: 5 },
+  'shoulder-press': { name: 'Shoulder Press', from: [105, 10], to: [115, 8], step: 5 },
+  'lateral-raise': { name: 'Lateral Raise', from: [12.5, 12], to: [15, 11], step: 2.5 },
+  'tricep-pushdown': { name: 'Tricep Pushdown', from: [90, 12], to: [95, 11], step: 5 },
+  'overhead-extension': { name: 'Overhead Extension', from: [70, 11], to: [80, 9], step: 5 },
+  'pull-up': { name: 'Pull Up', from: [0, 10], to: [0, 12], step: 1, bodyweight: true },
+  'wide-row': { name: 'Wide Row', from: [90, 9], to: [100, 8], step: 5 },
+  'dumbbell-row': { name: 'Dumbbell Row', from: [40, 8], to: [50, 8], step: 5 },
+  'rear-delt': { name: 'Rear Delt', from: [85, 11], to: [95, 9], step: 5 },
+  'straight-bar-curl': { name: 'Straight Bar Curl', from: [110, 9], to: [115, 9], step: 5 },
+  'bayesian-curl': { name: 'Bayesian Curl', from: [40, 7], to: [45, 8], step: 5 },
+}
+
+const KEY_NAMES: Record<string, string> = { 'incline-chest-press': 'Incline Chest Press', 'pec-deck': 'Pec Deck', 'lat-pulldown': 'Lat Pulldown', 'seated-row': 'Seated Row', 'leg-press': 'Leg Press' }
+
+const ORDER = {
+  push: { name: 'Push', variationId: 'push-standard', variationName: 'Standard order', exercises: ['incline-chest-press', 'converging-chest-press', 'pec-deck', 'shoulder-press', 'lateral-raise', 'tricep-pushdown', 'overhead-extension'] },
+  pull: { name: 'Pull', variationId: 'pull-ups-first', variationName: 'Pull-ups first', exercises: ['pull-up', 'lat-pulldown', 'seated-row', 'wide-row', 'dumbbell-row', 'rear-delt', 'straight-bar-curl', 'bayesian-curl'] },
+  legs: { name: 'Legs', variationId: 'press-first', variationName: 'Leg press first', exercises: ['leg-press'] },
+} as const
+
+const formatSet = ([weight, reps]: Lift, bodyweight?: boolean) => `${bodyweight && !weight ? 'bw' : weight}x${reps}`
+
+export function createHistorySessions(): Session[] {
+  const schedule = historySchedule()
+  const counts = { push: 0, pull: 0, legs: 0 }
+  const totals = { push: 0, pull: 0, legs: 0 }
+  schedule.forEach(day => { totals[day.routine]++ })
+  return schedule.map(({ date, routine }) => {
+    const i = counts[routine]++, n = totals[routine]
+    const plan = ORDER[routine]
+    const id = `history-${date}-${routine}`
+    const entries: StartingExercise[] = plan.exercises.map(exerciseId => {
+      const key = KEY_LIFTS[exerciseId]
+      if (key) return [exerciseId, KEY_NAMES[exerciseId], pick(key, i, n)]
+      const a = ACCESSORIES[exerciseId]
+      return [exerciseId, a.name, climb(a.from, a.to, a.step, i, n).map(([w, r]) => [w, r, a.bodyweight] as [number, number, boolean?])]
+    })
+    const exercises = entries.map((entry, index) => sessionExercise(id, index + 1, entry))
+    const rawNote = entries.map(([exerciseId, name, sets]) => `${name} ${sets.map(([w, r]) => formatSet([w, r], ACCESSORIES[exerciseId]?.bodyweight)).join(' ')}`).join('\n')
+    return { id, date, savedAt: `${date}T19:30:00.000-04:00`, routineId: routine, routineName: plan.name, variationId: plan.variationId, variationName: plan.variationName, orderKind: 'variation', actualExerciseOrder: exercises.map(exercise => exercise.exerciseId), exercises, rawNote }
+  })
 }

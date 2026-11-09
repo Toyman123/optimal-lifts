@@ -65,7 +65,7 @@ export type Draft = {
 export type AppData = {
   schemaVersion: 3
   sampleDataVersion?: 1
-  startingDataVersion?: 1
+  startingDataVersion?: 1 | 2
   routines: Routine[]
   sessions: Session[]
   draft?: Draft

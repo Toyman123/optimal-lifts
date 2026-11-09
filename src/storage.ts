@@ -1,4 +1,4 @@
-import { createSeedData, createStartingPointSessions } from './data'
+import { createHistorySessions, createSeedData, createStartingPointSessions } from './data'
 import type { AppData } from './types'
 
 const KEY = 'optimal-lifts:data'
@@ -30,10 +30,18 @@ export function normalizeData(input: unknown): AppData | null {
       if (value.schemaVersion === 3) merged.splice(0, merged.length, ...value.routines)
       else value.routines.forEach((routine) => { if (!merged.some((item) => item.id === routine.id || item.name.toLowerCase() === routine.name.toLowerCase())) merged.push(routine) })
       const sessions = value.sessions.filter(session => !session.id.startsWith('two-week-sample-'))
-      if (value.startingDataVersion !== 1) {
+      const startingVersion = value.startingDataVersion ?? 0
+      if (startingVersion < 1) {
         createStartingPointSessions().forEach(session => { if (!sessions.some(existing => existing.id === session.id)) sessions.push(session) })
       }
-      return { schemaVersion: 3, sampleDataVersion: 1, startingDataVersion: 1, routines: merged, sessions, draft: value.draft, drafts: value.drafts, restSeconds: value.restSeconds, nextRoutineId: value.nextRoutineId ?? seed.nextRoutineId }
+      // v2: fill Sep 21 – Nov 7 history, only for accounts that kept the starting sessions,
+      // and never on a day the user already logged that routine.
+      if (startingVersion < 2 && sessions.some(session => session.id.startsWith('starting-2026-09-17-'))) {
+        createHistorySessions().forEach(session => {
+          if (!sessions.some(existing => existing.id === session.id || (existing.date === session.date && existing.routineId === session.routineId))) sessions.push(session)
+        })
+      }
+      return { schemaVersion: 3, sampleDataVersion: 1, startingDataVersion: 2, routines: merged, sessions, draft: value.draft, drafts: value.drafts, restSeconds: value.restSeconds, nextRoutineId: value.nextRoutineId ?? seed.nextRoutineId }
     }
   } catch { /* preserve a usable app when storage is malformed */ }
   return null
@@ -44,7 +52,7 @@ export function loadData(): AppData {
     const stored = localStorage.getItem(KEY)
     if (!stored) {
       const seed = createSeedData()
-      return { ...seed, sessions: createStartingPointSessions() }
+      return { ...seed, sessions: [...createStartingPointSessions(), ...createHistorySessions()] }
     }
     return normalizeData(JSON.parse(stored)) ?? createSeedData()
   } catch { return createSeedData() }
