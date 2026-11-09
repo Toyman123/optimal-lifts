@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Optimal Lifts">
+  <rect width="512" height="512" rx="112" fill="#eaf0f4"/>
+  <g fill="#173f2c">
+    <rect x="58" y="204" width="54" height="104" rx="27"/>
+    <rect x="126" y="148" width="72" height="216" rx="36"/>
+    <rect x="190" y="226" width="132" height="60" rx="26"/>
+    <rect x="314" y="148" width="72" height="216" rx="36"/>
+    <rect x="400" y="204" width="54" height="104" rx="27"/>
+  </g>
+</svg>
