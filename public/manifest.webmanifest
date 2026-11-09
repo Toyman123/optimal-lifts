@@ -4,8 +4,8 @@
   "description": "A focused personal strength training log.",
   "start_url": "/#dashboard",
   "display": "standalone",
-  "background_color": "#090c0a",
-  "theme_color": "#090c0a",
+  "background_color": "#f3ede2",
+  "theme_color": "#f3ede2",
   "icons": [
     {
       "src": "/icon-192.png",
