@@ -7,6 +7,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Landing } from './Landing'
+import { AuthScreen } from './AuthScreen'
 import { Dashboard } from './Dashboard'
 import { BrandMark } from './BrandMark'
 import { GeminiWorkoutEntry } from './GeminiWorkoutEntry'
@@ -98,8 +99,9 @@ function App() {
     openWorkout(id)
   }
 
+  if (cloud.recovering) return <AuthScreen cloud={cloud} onHome={() => navigate('landing')} />
   if (view === 'landing') return <Landing onStart={() => navigate('home')} onLogin={() => navigate('home')} onProgress={() => navigate('progress')} />
-  if (!cloud.configured || !cloud.authReady || !cloud.email || !cloud.hydrated) return <AuthGate cloud={cloud} onHome={() => navigate('landing')} />
+  if (!cloud.configured || !cloud.authReady || !cloud.email || !cloud.hydrated) return <AuthScreen cloud={cloud} onHome={() => navigate('landing')} />
 
   return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a>
     <aside className="desktop-rail">
@@ -448,36 +450,6 @@ function QuickSetEntry({ exercises, previous, onAdd }: { exercises: Exercise[]; 
   </form>
 }
 
-function AccountForm({ cloud }: { cloud: CloudState }) {
-  const [email, setEmail] = useState(''), [password, setPassword] = useState('')
-  const [creating, setCreating] = useState(false), [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState(''), [error, setError] = useState('')
-  const submit = async () => {
-    setBusy(true); setError(''); setMessage('')
-    try {
-      if (creating) { const confirm = await cloud.signUpWithPassword(email.trim(), password); if (confirm) setMessage('Check your email to confirm your account, then sign in.') }
-      else await cloud.signInWithPassword(email.trim(), password)
-    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not sign in. Try again.') }
-    finally { setBusy(false) }
-  }
-  return <div className="account-form"><div className="account-intro"><LockKey /><div><h3>{creating ? 'Create your account' : 'Keep your training with you'}</h3><p>{creating ? 'Your workouts save to your account and follow you to every device.' : 'Sign in to log workouts. Everything saves to your account automatically.'}</p></div></div>
-    <form onSubmit={e => { e.preventDefault(); void submit() }}><label>Email<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" /></label><label>Password<input type="password" autoComplete={creating ? 'new-password' : 'current-password'} minLength={6} required value={password} onChange={e => setPassword(e.target.value)} /></label><Pressable type="submit" className="primary-button" disabled={busy || !cloud.authReady}>{busy ? 'Connecting…' : creating ? 'Create account' : 'Sign in'}<ArrowRight /></Pressable></form>
-    {error && <p role="alert" className="cloud-message error">{error}</p>}{message && <p role="status" className="cloud-message">{message}</p>}{!error && !message && cloud.message && <p role="status" className="cloud-message">{cloud.message}</p>}
-    <button className="text-link" disabled={busy} onClick={() => { setCreating(!creating); setError(''); setMessage('') }}>{creating ? 'Already have an account? Sign in' : 'New here? Create an account'}</button>
-    {cloud.googleEnabled && <Pressable className="secondary-button" disabled={busy} onClick={async () => { setBusy(true); try { await cloud.signInWithGoogle() } catch (caught) { setError(caught instanceof Error ? caught.message : 'Google sign-in failed.') } finally { setBusy(false) } }}>Continue with Google</Pressable>}
-  </div>
-}
-
-function AuthGate({ cloud, onHome }: { cloud: CloudState; onHome: () => void }) {
-  const loading = cloud.configured && (!cloud.authReady || (cloud.email && !cloud.hydrated && cloud.status !== 'error'))
-  return <div className="auth-gate"><div className="auth-card">
-    <button className="brand-lockup" onClick={onHome}><DumbbellMark size={30} /><span>Optimal Lifts</span></button>
-    {!cloud.configured ? <div className="disclosure"><Info weight="fill" /><div><strong>Sign-in isn’t configured</strong><p>Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to the environment, then redeploy.</p></div></div>
-      : loading ? <p role="status" className="auth-loading">{cloud.email ? 'Loading your workouts…' : 'Connecting…'}</p>
-      : cloud.email ? <div className="auth-error"><p role="alert" className="cloud-message error">{cloud.message ?? 'Could not load your workouts.'}</p><div className="sheet-footer"><Pressable className="secondary-button" onClick={() => cloud.signOut()}>Sign out</Pressable><Pressable className="primary-button" onClick={cloud.retry}>Try again</Pressable></div></div>
-      : <AccountForm cloud={cloud} />}
-  </div></div>
-}
 
 function Settings({ data, setData, toast, cloud }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>>; toast: (s: string) => void; cloud: CloudState }) {
   const [confirming, setConfirming] = useState<'routines' | 'all' | null>(null)

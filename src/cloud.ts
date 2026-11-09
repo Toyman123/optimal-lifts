@@ -6,6 +6,8 @@ import type { AppData } from './types'
 
 const projectUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
 const publishableKey = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY)?.trim()
+// Read before the client consumes the URL: a password-reset email link lands here with type=recovery.
+const openedFromRecoveryLink = typeof window !== 'undefined' && /type=recovery/.test(window.location.hash)
 const supabase = projectUrl && publishableKey ? createClient(projectUrl, publishableKey) : null
 
 export async function getCloudAccessToken() {
@@ -26,6 +28,10 @@ export type CloudState = {
   signInWithPassword: (email: string, password: string) => Promise<void>
   signUpWithPassword: (email: string, password: string) => Promise<boolean>
   signInWithGoogle: () => Promise<void>
+  /** True after the user opens a password-reset link; they must choose a new password. */
+  recovering: boolean
+  sendPasswordReset: (email: string) => Promise<void>
+  updatePassword: (password: string) => Promise<void>
   signOut: () => Promise<void>
   retry: () => void
 }
@@ -59,6 +65,7 @@ export function useCloudSync(data: AppData, setData: Dispatch<SetStateAction<App
   const [hydratedId, setHydratedId] = useState<string>()
   const [attempt, setAttempt] = useState(0)
   const [googleEnabled, setGoogleEnabled] = useState(false)
+  const [recovering, setRecovering] = useState(Boolean(supabase) && openedFromRecoveryLink)
   const [status, setStatus] = useState<CloudState['status']>(supabase ? 'connecting' : 'signed-out')
   const [message, setMessage] = useState<string>()
   const dataRef = useRef(data)
@@ -81,7 +88,7 @@ export function useCloudSync(data: AppData, setData: Dispatch<SetStateAction<App
     }).catch(error => {
       if (!cancelled) { window.clearTimeout(timeout); setAuthReady(true); setStatus('error'); setMessage(friendly(error, 'Could not connect to your account.')) }
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => { setSession(nextSession); setAuthReady(true) })
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => { if (event === 'PASSWORD_RECOVERY') setRecovering(true); setSession(nextSession); setAuthReady(true) })
     return () => { cancelled = true; window.clearTimeout(timeout); listener.subscription.unsubscribe() }
   }, [])
 
@@ -177,15 +184,28 @@ export function useCloudSync(data: AppData, setData: Dispatch<SetStateAction<App
     const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
     if (error) { setStatus('signed-out'); throw new Error(friendly(error, 'Google sign-in failed.')) }
   }
+  const sendPasswordReset = async (email: string) => {
+    if (!supabase) throw new Error('Sign-in is not configured.')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+    if (error) throw new Error(friendly(error, 'Could not send the reset email.'))
+  }
+  const updatePassword = async (password: string) => {
+    if (!supabase) throw new Error('Sign-in is not configured.')
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw new Error(friendly(error, 'Could not update your password.'))
+    setRecovering(false)
+    if (window.location.hash.includes('type=recovery') || window.location.hash.includes('access_token')) window.history.replaceState(null, '', '#dashboard')
+  }
   const signOut = async () => {
     let saved = true
     if (dirty.current) { await flush(); saved = !dirty.current }
     if (supabase) await supabase.auth.signOut()
+    setRecovering(false)
     // Leave nothing behind for the next person unless it failed to save.
     if (saved) { clearData(); clearCloudOwnerId(); setData(createSeedData()) }
     setHydratedId(undefined); setSession(null); setStatus('signed-out'); setMessage(undefined)
   }
   const retry = () => { setMessage(undefined); setAttempt(n => n + 1) }
 
-  return { configured: Boolean(supabase), authReady, hydrated, googleEnabled, email: session?.user.email, status, message, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut, retry }
+  return { configured: Boolean(supabase), authReady, hydrated, googleEnabled, email: session?.user.email, status, message, signInWithPassword, signUpWithPassword, signInWithGoogle, recovering, sendPasswordReset, updatePassword, signOut, retry }
 }

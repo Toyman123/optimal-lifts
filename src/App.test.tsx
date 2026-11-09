@@ -4,7 +4,7 @@ import App from './App'
 import { createSeedData } from './data'
 import type { AppData } from './types'
 
-const auth = vi.hoisted(() => ({ email: 'test@example.com' as string | undefined, signInWithPassword: vi.fn(async () => {}), signUpWithPassword: vi.fn(async () => true), signOut: vi.fn(async () => {}), retry: vi.fn() }))
+const auth = vi.hoisted(() => ({ email: 'test@example.com' as string | undefined, signInWithPassword: vi.fn(async () => {}), signUpWithPassword: vi.fn(async () => true), signOut: vi.fn(async () => {}), retry: vi.fn(), recovering: false, sendPasswordReset: vi.fn(async () => {}), updatePassword: vi.fn(async () => {}) }))
 vi.mock('./cloud', () => ({ getCloudAccessToken: vi.fn(), useCloudSync: () => ({ configured: true, authReady: true, hydrated: Boolean(auth.email), status: auth.email ? 'synced' : 'signed-out', googleEnabled: false, ...auth }) }))
 const restTimer = vi.hoisted(() => ({ setTimer: vi.fn() }))
 vi.mock('./useRestTimer', () => ({ useRestTimer: () => ({ timer: null, setTimer: restTimer.setTimer, restAlertsEnabled: false, enableRestAlerts: vi.fn(), disableRestAlerts: vi.fn(), testRestAlert: vi.fn() }) }))
@@ -13,6 +13,7 @@ const navigate = (name: string) => fireEvent.click(screen.getAllByRole('button',
 
 beforeEach(() => {
   auth.email = 'test@example.com'
+  auth.recovering = false
   window.history.replaceState(null, '', '#dashboard')
   localStorage.clear()
   localStorage.setItem('optimal-lifts:data', JSON.stringify(createSeedData()))
@@ -98,6 +99,32 @@ describe('workout app flows', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
     await screen.findByText('Check your email to confirm your account, then sign in.')
     expect(auth.signUpWithPassword).toHaveBeenCalledOnce()
+  })
+
+  it('sends a password reset link from the sign-in screen', async () => {
+    auth.email = undefined
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Forgot password?' }))
+    expect(screen.queryByLabelText('Password')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'lifter@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send reset link' }))
+    await screen.findByText(/a reset link is on its way/)
+    expect(auth.sendPasswordReset).toHaveBeenCalledWith('lifter@example.com')
+    fireEvent.click(screen.getByRole('button', { name: 'Back to sign in' }))
+    expect(screen.getByLabelText('Password')).toBeTruthy()
+  })
+
+  it('asks for a new password after opening a reset link, even when signed in', async () => {
+    auth.recovering = true
+    render(<App />)
+    fireEvent.change(await screen.findByLabelText('New password'), { target: { value: 'new-password-1' } })
+    fireEvent.change(screen.getByLabelText('Confirm new password'), { target: { value: 'different-1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save new password' }))
+    await screen.findByText(/don’t match/)
+    expect(auth.updatePassword).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText('Confirm new password'), { target: { value: 'new-password-1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save new password' }))
+    await waitFor(() => expect(auth.updatePassword).toHaveBeenCalledWith('new-password-1'))
   })
 
   it('reorders routines using the workout list controls', async () => {
