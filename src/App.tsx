@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom'
 import { Landing } from './Landing'
 import { AuthScreen } from './AuthScreen'
 import { Dashboard } from './Dashboard'
+import { WorkoutDays } from './Workouts'
 import { ProgressChart } from './ProgressChart'
 import { BrandMark } from './BrandMark'
 import { GeminiWorkoutEntry } from './GeminiWorkoutEntry'
@@ -151,19 +152,8 @@ function Home({ data, setData, startWorkout, navigate }: { data: AppData; setDat
 
 function Workouts({ data, setData, startWorkout, toast }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>>; startWorkout: (id: string) => void; toast: (s: string) => void }) {
   const [editing, setEditing] = useState<Routine | null>(null)
-  const [newName, setNewName] = useState('')
-  const addRoutine = () => {
-    const name = newName.trim(); if (!name) return
-    const routine: Routine = { id: uid(), name, exercises: [], variations: [{ id: uid(), name: 'Standard order', exerciseIds: [] }] }
-    setData(d => ({ ...d, routines: [...d.routines, routine] })); setNewName(''); setEditing(routine); toast('Workout created')
-  }
-  return <div className="page"><PageHeader eyebrow="Build your rotation" title="Workouts" action={<span className="count-badge">{data.routines.filter(r => !r.archived).length} active</span>} />
-    <div className="stack-list">{data.routines.filter(r => !r.archived).map((routine, index) => <motion.article layout key={routine.id} className="workout-list-card">
-      <div className="routine-reorder"><button aria-label={`Move ${routine.name} earlier`} disabled={index === 0} onClick={() => setData(d => moveRoutineInList(d, routine.id, -1))}>↑</button><button aria-label={`Move ${routine.name} later`} disabled={index === data.routines.filter(r => !r.archived).length - 1} onClick={() => setData(d => moveRoutineInList(d, routine.id, 1))}>↓</button></div><div className="list-card-copy"><span>{String(index + 1).padStart(2, '0')}</span><h2>{routine.name}</h2><p>{routine.exercises.filter(e => !e.archived).map(e => e.name).join(' · ') || 'Add your first exercise'}</p></div>
-      <div className="list-actions"><Pressable className="secondary-button" onClick={() => setEditing(routine)}>Edit</Pressable><Pressable className="round-button" onClick={() => startWorkout(routine.id)} ariaLabel={`Start ${routine.name}`}><ArrowRight /></Pressable></div>
-    </motion.article>)}</div>
-    <form className="inline-create" onSubmit={e => { e.preventDefault(); addRoutine() }}><label htmlFor="routine-name">New workout</label><div><input id="routine-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Upper, Full body, Arms…" /><Pressable type="submit" className="primary-button" disabled={!newName.trim()}><Plus /> Add</Pressable></div></form>
-    <details className="archive-drawer"><summary><Archive /> Archived workouts <span>{data.routines.filter(r => r.archived).length}</span></summary>{data.routines.filter(r => r.archived).map(r => <button key={r.id} onClick={() => setData(d => ({ ...d, routines: d.routines.map(item => item.id === r.id ? { ...item, archived: false } : item) }))}>{r.name}<Repeat /></button>)}</details>
+  return <div className="page"><PageHeader eyebrow="Your split" title="Push · Pull · Legs" />
+    <WorkoutDays data={data} startWorkout={startWorkout} onEdit={setEditing} />
     <AnimatePresence>{editing && <RoutineEditor routine={data.routines.find(r => r.id === editing.id) ?? editing} onClose={() => setEditing(null)} setData={setData} toast={toast} />}</AnimatePresence>
   </div>
 }
@@ -412,16 +402,6 @@ function Progress({ data, setData, navigate, setRoutineId }: { data: AppData; se
 }
 
 
-function moveRoutineInList(data: AppData, id: string, amount: number): AppData {
-  const active = data.routines.filter(r => !r.archived)
-  const index = active.findIndex(r => r.id === id)
-  const target = active[index + amount]
-  if (!target) return data
-  const routines = [...data.routines]
-  const from = routines.findIndex(r => r.id === id), to = routines.findIndex(r => r.id === target.id)
-  ;[routines[from], routines[to]] = [routines[to], routines[from]]
-  return { ...data, routines }
-}
 
 
 

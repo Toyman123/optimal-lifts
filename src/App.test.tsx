@@ -125,10 +125,12 @@ describe('workout app flows', () => {
     await waitFor(() => expect(auth.updatePassword).toHaveBeenCalledWith('new-password-1'))
   })
 
-  it('reorders routines using the workout list controls', async () => {
+  it('shows the push, pull, legs split and starts a day from it', async () => {
     render(<App />)
     navigate('Workouts')
-    fireEvent.click(await screen.findByRole('button', { name: 'Move Pull earlier' }))
-    await waitFor(() => expect(stored().routines[0].id).toBe('pull'))
+    await screen.findByRole('heading', { name: 'Push · Pull · Legs' })
+    for (const day of ['Push', 'Pull', 'Legs']) screen.getByRole('button', { name: `Start ${day}` })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Pull' }))
+    expect((await screen.findByLabelText('Workout name') as HTMLInputElement).value).toBe('Pull')
   })
 })
