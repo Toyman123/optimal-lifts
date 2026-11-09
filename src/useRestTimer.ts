@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { isIPhoneBrowser, isInstalledApp, registerRestAlerts, showRestNotification } from './rest-alerts'
+import { isIPhoneBrowser, isInstalledApp, pushSupported, registerRestAlerts, showRestNotification, subscribePush } from './rest-alerts'
+import { cancelRestPush, scheduleRestPush } from './cloud'
 import { remainingRestSeconds } from './timer'
 
 export type RestTimer = { id: string; exerciseId: string; name: string; duration: number; remaining: number; running: boolean; endAt?: number; alerted?: boolean }
@@ -25,6 +26,7 @@ export function useRestTimer(toast: (message: string) => void) {
   const [alertMessage, setAlertMessage] = useState('')
   const audio = useRef<AudioContext | null>(null)
   const notified = useRef<string | undefined>(undefined)
+  const scheduledPush = useRef<string | undefined>(undefined)
 
   const unlockAudio = () => {
     if (!restAlertsEnabled) return
@@ -84,6 +86,24 @@ export function useRestTimer(toast: (message: string) => void) {
     }
   }, [timer?.id, timer?.remaining, restAlertsEnabled])
 
+  // Hand each running timer to the server so the alert arrives even when the phone is locked.
+  useEffect(() => {
+    const canPush = restAlertsEnabled && pushSupported() && typeof Notification !== 'undefined' && Notification.permission === 'granted'
+    if (canPush && timer?.running && timer.endAt && timer.endAt - Date.now() > 3000) {
+      const key = `${timer.id}:${timer.endAt}`
+      if (scheduledPush.current === key) return
+      scheduledPush.current = key
+      const { id, name, endAt } = timer
+      void subscribePush().then(subscription => subscription && scheduleRestPush({ id, name, endAt }, subscription)).catch(error => console.warn('Locked-screen rest alert unavailable', error))
+      return
+    }
+    // Paused, cancelled or alerts turned off: drop the pending push. A timer that simply ran out keeps it.
+    if (scheduledPush.current && (!timer || (!timer.running && timer.remaining > 0) || !restAlertsEnabled)) {
+      scheduledPush.current = undefined
+      void cancelRestPush().catch(() => undefined)
+    }
+  }, [timer?.id, timer?.running, timer?.endAt, timer?.remaining === 0, restAlertsEnabled])
+
   const enableRestAlerts = async () => {
     setRestAlertsEnabled(true); localStorage.setItem(ALERTS_KEY, 'true')
     // Keep the permission request in the button gesture; an awaited audio resume loses it on iOS.
@@ -97,7 +117,8 @@ export function useRestTimer(toast: (message: string) => void) {
       if (permission === 'granted') {
         await registerRestAlerts()
         await showRestNotification('', true)
-        setAlertMessage('Notifications enabled. Keep the app on screen for on-time alerts; locked-screen delivery is not available yet.')
+        const subscribed = await subscribePush().catch(() => undefined)
+        setAlertMessage(subscribed ? 'Notifications enabled. Rest alerts arrive even when your phone is locked.' : 'Notifications enabled. Keep the app on screen for on-time alerts.')
         toast('Test notification sent')
       } else {
         const message = isIPhoneBrowser() && !isInstalledApp()

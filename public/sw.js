@@ -10,3 +10,12 @@ self.addEventListener('notificationclick', event => {
     return self.clients.openWindow('/')
   })())
 })
+// Rest-complete alerts scheduled on the server, so they arrive while the phone is locked.
+// Same tag as the in-app notification, so the two collapse into one when the app is open.
+self.addEventListener('push', event => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch { data = { body: event.data && event.data.text() } }
+  event.waitUntil(self.registration.showNotification(data.title || 'Rest complete', {
+    body: data.body || 'Ready for your next set.', icon: '/icon-192.png', badge: '/icon-192.png', tag: 'optimal-lifts-rest', renotify: true,
+  }))
+})

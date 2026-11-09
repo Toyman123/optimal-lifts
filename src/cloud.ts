@@ -16,6 +16,30 @@ export async function getCloudAccessToken() {
   return data.session?.access_token
 }
 
+/**
+ * Asks the server to push "Rest complete" at `endAt`, so it arrives even when the phone is locked.
+ * The alert id is stored on the account; replacing or clearing it cancels the pending push.
+ */
+export async function scheduleRestPush(timer: { id: string; name: string; endAt: number }, subscription: PushSubscriptionJSON) {
+  if (!supabase) return
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) return
+  const alertId = `${timer.id}:${timer.endAt}`
+  const { error } = await supabase.auth.updateUser({ data: { rest_alert: { id: alertId } } })
+  if (error) throw error
+  const response = await fetch('/api/rest-alert', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ subscription, alertId, dueAt: timer.endAt, name: timer.name }) })
+  if (!response.ok) throw new Error((await response.json().catch(() => null) as { message?: string } | null)?.message || 'Could not schedule the rest alert.')
+}
+
+/** Cancels any pending locked-screen rest alert for this account. */
+export async function cancelRestPush() {
+  if (!supabase) return
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) return
+  await supabase.auth.updateUser({ data: { rest_alert: null } })
+}
+
 export type CloudState = {
   configured: boolean
   authReady: boolean
