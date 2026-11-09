@@ -1,4 +1,4 @@
-import { CoachError, checkRateLimit, requireSignedInUser } from './coach.ts'
+import { CoachError, checkRateLimit, requireSignedInUser } from './coach.js'
 import { validateExtractedWorkout } from '../src/gemini-parser.ts'
 import type { Exercise } from '../src/types'
 

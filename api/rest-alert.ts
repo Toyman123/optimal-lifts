@@ -1,5 +1,5 @@
 import { waitUntil } from '@vercel/functions'
-import { PushError, bearerToken, fetchUser, parseRestAlert, runRestAlert } from './_push.ts'
+import { PushError, bearerToken, fetchUser, parseRestAlert, runRestAlert } from './_push.js'
 
 /** Schedules a rest-complete push notification so it arrives even when the phone is locked. */
 export default async function handler(req: any, res: any) {

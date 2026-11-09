@@ -1,9 +1,5 @@
 import http from 'node:http'
 import { createServer as createViteServer, loadEnv } from 'vite'
-import { CoachError, checkRateLimit, generateCoachReply, requireSignedInUser } from '../api/coach.ts'
-
-import { extractWorkout } from '../api/parse.ts'
-import { PushError, bearerToken, fetchUser, parseRestAlert, runRestAlert } from '../api/_push.ts'
 
 const env = loadEnv('development', process.cwd(), '')
 for (const key of ['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_SUPABASE_ANON_KEY', 'VITE_VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY']) {
@@ -47,8 +43,12 @@ const api = http.createServer((req, res) => {
   })
 })
 
-await new Promise(resolve => api.listen(5174, '127.0.0.1', resolve))
 const vite = await createViteServer({ configFile: 'vite.config.ts', server: { host: '127.0.0.1', port: 5173, proxy: { '/api': { target: 'http://127.0.0.1:5174' } } } })
+// Load the API through Vite so its imports resolve the same way they do when Vercel compiles them ('./x.js' -> x.ts).
+const { CoachError, checkRateLimit, generateCoachReply, requireSignedInUser } = await vite.ssrLoadModule('/api/coach.ts')
+const { extractWorkout } = await vite.ssrLoadModule('/api/parse.ts')
+const { PushError, bearerToken, fetchUser, parseRestAlert, runRestAlert } = await vite.ssrLoadModule('/api/_push.ts')
+await new Promise(resolve => api.listen(5174, '127.0.0.1', resolve))
 await vite.listen()
 vite.printUrls()
 
